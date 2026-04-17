@@ -13,16 +13,14 @@
 class Device
 {
     vk::raii::PhysicalDevice physicalDevice = nullptr;
+    
 public:
-    Device(/* args */);
-    ~Device();
     std::vector<const char*> requiredDeviceExtension = {vk::KHRSwapchainExtensionName};
 
     void create(Instance& instance){
-        pickPhysicalDevice(instance);
-
-
+        physicalDevice = pickPhysicalDevice(instance);
     }
+private:
     std::optional<int> isDeviceSuitable( vk::raii::PhysicalDevice const & physicalDevice )
     {
         auto deviceProperties = physicalDevice.getProperties();
@@ -75,7 +73,7 @@ public:
             return score;
         return {};
     }
-    void pickPhysicalDevice(Instance& instance){
+    vk::raii::PhysicalDevice pickPhysicalDevice(Instance& instance){
          auto physicalDevices = vk::raii::PhysicalDevices( instance.instance );
         if (physicalDevices.empty())
         {
@@ -95,7 +93,7 @@ public:
         // Check if the best candidate is suitable at all
         if (!candidates.empty() && candidates.rbegin()->first > 0)
         {
-            physicalDevice = candidates.rbegin()->second;
+            return candidates.rbegin()->second;
         }
         else
         {
@@ -104,11 +102,3 @@ public:
     }
     
 };
-
-Device::Device(/* args */)
-{
-}
-
-Device::~Device()
-{
-}
