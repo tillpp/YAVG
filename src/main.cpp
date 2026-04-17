@@ -14,7 +14,9 @@ void game() {
     Instance instance;
     instance.create(instanceExtensions);
     Device device;
-    device.create(instance);
+
+    GraphicsQueue queue;
+    device.create(instance,{&queue});
 
     window.create();
     

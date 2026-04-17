@@ -9,16 +9,81 @@
 #include <map>
 #include <optional>
 #include "Instance.hpp"
+#include "Queue.hpp"
 
 class Device
 {
     vk::raii::PhysicalDevice physicalDevice = nullptr;
-    
+    vk::raii::Device device = nullptr;
 public:
     std::vector<const char*> requiredDeviceExtension = {vk::KHRSwapchainExtensionName};
 
-    void create(Instance& instance){
+    void create(Instance& instance,std::vector<Queue*> queues){
         physicalDevice = pickPhysicalDevice(instance);
+
+        
+        struct QueueInfo{
+            Queue*  queue;
+            float priority;
+        };
+        std::map<unsigned int,std::vector<QueueInfo>>  queueMap;
+        {
+            std::vector<vk::QueueFamilyProperties> queueFamilyProperties = physicalDevice.getQueueFamilyProperties();
+            for (auto &&queue : queues){
+                auto queueFamilyProperty = std::ranges::find_if(queueFamilyProperties, [&queue](auto const &qfp) {
+                    return queue->isQueueFamilySuitable(qfp);
+                });
+                auto index = static_cast<uint32_t>(std::distance(queueFamilyProperties.begin(), queueFamilyProperty));
+                float queuePriority = 0.5f;
+                
+                queueMap[index].push_back((QueueInfo){
+                    .queue = queue,
+                    .priority = queuePriority,
+                });
+             }
+        }
+        std::vector<vk::DeviceQueueCreateInfo> deviceQueueCreateInfos;
+        for(auto&& pair: queueMap){
+            auto familyIndex = pair.first;
+            std::vector<float> priorities;
+            {
+                priorities.reserve(pair.second.size());
+                std::ranges::transform(pair.second,std::back_inserter(priorities), &QueueInfo::priority);
+            }
+                
+            deviceQueueCreateInfos.push_back(vk::DeviceQueueCreateInfo{ 
+                .queueFamilyIndex = familyIndex,
+                .queueCount = (unsigned int)priorities.size(),
+                .pQueuePriorities = priorities.data()
+            });
+        }
+
+        // Create a chain of feature structures
+        vk::PhysicalDeviceFeatures2 a{};// vk::PhysicalDeviceFeatures2 (empty for now)
+        vk::PhysicalDeviceVulkan13Features b{.dynamicRendering = true}; // Enable dynamic rendering from Vulkan 1.3
+        vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT c{.extendedDynamicState = true };  // Enable extended dynamic state from the extension
+        a.pNext = &b;
+        b.pNext = &c;
+
+
+        vk::DeviceCreateInfo deviceCreateInfo{
+            .pNext = &a,
+            .queueCreateInfoCount = deviceQueueCreateInfos.size(),
+            .pQueueCreateInfos = deviceQueueCreateInfos.data(),
+            .enabledExtensionCount = static_cast<uint32_t>(requiredDeviceExtension.size()),
+            .ppEnabledExtensionNames = requiredDeviceExtension.data()
+        }; 
+        device = vk::raii::Device( physicalDevice, deviceCreateInfo );
+
+        for(auto&& pair: queueMap){
+            auto familyIndex = pair.first;
+            
+            for (size_t i = 0; i < pair.second.size(); i++)
+            {
+                pair.second[i].queue->queue = vk::raii::Queue( device, familyIndex, i );
+            }
+            
+        }
     }
 private:
     std::optional<int> isDeviceSuitable( vk::raii::PhysicalDevice const & physicalDevice )
