@@ -7,8 +7,9 @@ class Swapchain
     std::vector<vk::Image> swapChainImages;
     vk::SurfaceFormatKHR   swapChainSurfaceFormat;
     vk::Extent2D           swapChainExtent;
-
 public:
+    std::vector<vk::raii::ImageView> swapChainImageViews;
+
     Swapchain(DeviceSettings& deviceSettings){
         deviceSettings.extensions.push_back(vk::KHRSwapchainExtensionName);
     }
@@ -79,6 +80,21 @@ public:
         };
         swapChain       = vk::raii::SwapchainKHR( device.device, swapChainCreateInfo );
         swapChainImages = swapChain.getImages();
+        createImageView(device);
+    }
+    void createImageView(Device& device){
+        assert(swapChainImageViews.empty());
+
+        vk::ImageViewCreateInfo imageViewCreateInfo{ 
+            .viewType         = vk::ImageViewType::e2D,
+            .format           = swapChainSurfaceFormat.format,
+            .subresourceRange = { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 } 
+        };
+        for (auto &image : swapChainImages)
+        {
+            imageViewCreateInfo.image = image;
+            swapChainImageViews.emplace_back( device.device, imageViewCreateInfo );
+        }
 
     }
 };

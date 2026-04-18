@@ -20,7 +20,7 @@ void game() {
     DeviceSettings deviceSettings;
     Swapchain swapchain(deviceSettings);
     device.create(instance,deviceSettings,{&queue});
-    
+    swapchain.create(window,device);
 
     while(window.update()){
         glfwPollEvents();   
