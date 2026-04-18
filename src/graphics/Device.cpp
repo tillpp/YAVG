@@ -3,6 +3,7 @@
 
 void Device::create(Instance& instance,DeviceSettings settings,std::vector<Queue*> queues){
     physicalDevice = pickPhysicalDevice(instance,settings);
+    
     // LOGICLA DEVICE:
     struct QueueInfo{
         Queue*  queue;
@@ -49,12 +50,17 @@ void Device::create(Instance& instance,DeviceSettings settings,std::vector<Queue
             .pQueuePriorities = priorities.data()
         });
     }
+
+    // TODO: refactor features into DeviceSettings
     // Create a chain of feature structures
     vk::PhysicalDeviceFeatures2 a{};// vk::PhysicalDeviceFeatures2 (empty for now)
     vk::PhysicalDeviceVulkan13Features b{.dynamicRendering = true}; // Enable dynamic rendering from Vulkan 1.3
     vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT c{.extendedDynamicState = true };  // Enable extended dynamic state from the extension
+    vk::PhysicalDeviceVulkan11Features d{.shaderDrawParameters = true};
     a.pNext = &b;
     b.pNext = &c;
+    c.pNext = &d;
+
     vk::DeviceCreateInfo deviceCreateInfo{
         .pNext = &a,
         .queueCreateInfoCount = static_cast<uint32_t>(deviceQueueCreateInfos.size()),
@@ -63,6 +69,7 @@ void Device::create(Instance& instance,DeviceSettings settings,std::vector<Queue
         .ppEnabledExtensionNames = settings.extensions.data()
     }; 
     device = vk::raii::Device( physicalDevice, deviceCreateInfo );
+
     for(auto&& pair: queueMap){
         auto familyIndex = pair.first;
         
@@ -77,12 +84,15 @@ std::optional<int> Device::isDeviceSuitable( vk::raii::PhysicalDevice const & ph
     auto deviceProperties = physicalDevice.getProperties();
     auto deviceFeatures = physicalDevice.getFeatures();
     uint32_t score = 0;
+
     // Discrete GPUs have a significant performance advantage
     if (deviceProperties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu) {
         score += 1000;
     }
+
     // Maximum possible size of textures affects graphics quality
     score += deviceProperties.limits.maxImageDimension2D;
+
     // Application can't function without geometry shaders
     if (!deviceFeatures.geometryShader)
     {
@@ -90,9 +100,11 @@ std::optional<int> Device::isDeviceSuitable( vk::raii::PhysicalDevice const & ph
     }
     // Check if the physicalDevice supports the Vulkan 1.3 API version
     bool supportsVulkan1_3 = physicalDevice.getProperties().apiVersion >= vk::ApiVersion13;
+    
     // Check if any of the queue families support graphics operations
     auto queueFamilies    = physicalDevice.getQueueFamilyProperties();
     bool supportsGraphics = std::ranges::any_of( queueFamilies, []( auto const & qfp ) { return !!( qfp.queueFlags & vk::QueueFlagBits::eGraphics ); } );
+
     // Check if all required physicalDevice extensions are available
     auto availableDeviceExtensions = physicalDevice.enumerateDeviceExtensionProperties();
     bool supportsAllRequiredExtensions =
@@ -103,12 +115,15 @@ std::optional<int> Device::isDeviceSuitable( vk::raii::PhysicalDevice const & ph
                                     [requiredDeviceExtension]( auto const & availableDeviceExtension )
                                     { return strcmp( availableDeviceExtension.extensionName, requiredDeviceExtension ) == 0; } );
         } );
+
     // Check if the physicalDevice supports the required features (dynamic rendering and extended dynamic state)
     auto features =
         physicalDevice
-        .template getFeatures2<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan13Features, vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>();
+        .template getFeatures2<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan13Features, vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT,vk::PhysicalDeviceVulkan11Features>();
     bool supportsRequiredFeatures = features.template get<vk::PhysicalDeviceVulkan13Features>().dynamicRendering &&
-                                    features.template get<vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>().extendedDynamicState;
+                                    features.template get<vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>().extendedDynamicState &&
+                                    features.template get<vk::PhysicalDeviceVulkan11Features>().shaderDrawParameters;
+
     // Return true if the physicalDevice meets all the criteria
     if(supportsVulkan1_3 && supportsGraphics && supportsAllRequiredExtensions && supportsRequiredFeatures)
         return score;
@@ -120,6 +135,7 @@ vk::raii::PhysicalDevice Device::pickPhysicalDevice(Instance& instance,const Dev
     {
         throw std::runtime_error( "failed to find GPUs with Vulkan support!" );
     }
+
     // Use an ordered map to automatically sort candidates by increasing score
     std::multimap<int, vk::raii::PhysicalDevice> candidates;
     for (const auto& pd : physicalDevices)
@@ -128,6 +144,7 @@ vk::raii::PhysicalDevice Device::pickPhysicalDevice(Instance& instance,const Dev
         if(score.has_value())   
             candidates.insert(std::make_pair(score.value(), pd));
     }
+
     // Check if the best candidate is suitable at all
     if (!candidates.empty() && candidates.rbegin()->first > 0)
     {

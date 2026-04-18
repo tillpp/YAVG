@@ -4,7 +4,7 @@
 #include "graphics/Instance.hpp"
 #include "graphics/ValidationLayer.hpp"
 #include "graphics/Device.hpp"
-#include "graphics/Swapchain.hpp"
+#include "graphics/Pipeline.hpp"
 
 void game() {
     GameFolder gf;
@@ -21,6 +21,8 @@ void game() {
     Swapchain swapchain(deviceSettings);
     device.create(instance,deviceSettings,{&queue});
     swapchain.create(window,device);
+    Pipeline pipeline;
+    pipeline.create(device,swapchain);
 
     while(window.update()){
         glfwPollEvents();   

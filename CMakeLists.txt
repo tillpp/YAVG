@@ -19,6 +19,8 @@ else()
        set(ARCHIVE_OUTPUT_DIRECTORY       ${CMAKE_SOURCE_DIR}/bin/linux)
 endif(WIN32)
 
+set(BIN_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
+
 
 FetchContent_Declare(
   glfw
@@ -45,3 +47,33 @@ add_executable (YAVOG ${SOURCE_FILES})
 target_link_libraries(YAVOG glfw)
 target_link_libraries(YAVOG vulkan)
 
+
+
+
+# shaders
+function (add_slang_shader_target TARGET)
+  cmake_parse_arguments ("SHADER" "" "" "SOURCES" ${ARGN})
+  set (SHADERS_DIR ${CMAKE_CURRENT_LIST_DIR}/shaders)
+  set (ENTRY_POINTS -entry vertMain -entry fragMain)
+  add_custom_command (
+          OUTPUT ${SHADERS_DIR}
+          COMMAND ${CMAKE_COMMAND} -E make_directory ${SHADERS_DIR}
+  )
+  add_custom_command (
+          OUTPUT  ${BIN_OUTPUT_DIRECTORY}/slang.spv
+          COMMAND ${SLANGC_EXECUTABLE} ${SHADER_SOURCES} -target spirv -profile spirv_1_3 -emit-spirv-directly -fvk-use-entrypoint-name ${ENTRY_POINTS} -o ${BIN_OUTPUT_DIRECTORY}/slang.spv
+          WORKING_DIRECTORY ${SHADERS_DIR}
+          DEPENDS ${SHADERS_DIR} ${SHADER_SOURCES}
+          COMMENT "Compiling Slang Shaders"
+          VERBATIM
+  )
+  add_custom_target (${TARGET} DEPENDS ${BIN_OUTPUT_DIRECTORY}/slang.spv)
+endfunction()
+
+
+file(GLOB_RECURSE SHADER_SLANG_SOURCES CONFIGURE_DEPENDS
+       ${PROJECT_SOURCE_DIR}/shaders/**.slang)
+
+set(SLANGC_EXECUTABLE "${vulkan_SOURCE_DIR}/x86_64/bin/slangc")
+add_slang_shader_target( shaders SOURCES ${SHADER_SLANG_SOURCES})
+add_dependencies(YAVOG shaders)
