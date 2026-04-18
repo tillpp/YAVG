@@ -3,7 +3,7 @@
 int64_t glfwCount;
 
 
-Window::Window(InstanceSettings& settings)
+Window::Window(InstanceSettings* settings)
 {
     if(glfwCount == 0){
         glfwInit();
@@ -13,7 +13,7 @@ Window::Window(InstanceSettings& settings)
     // add extensions to wishlist:
     uint32_t glfwExtensionCount = 0;
     auto glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-    settings.extensions.insert(settings.extensions.end(),glfwExtensions,glfwExtensions+glfwExtensionCount);
+    settings->extensions.insert(settings->extensions.end(),glfwExtensions,glfwExtensions+glfwExtensionCount);
 
     // check if the extensions are available
     vk::raii::Context context;
@@ -37,15 +37,25 @@ Window::~Window()
         glfwTerminate();
     }
 }
-void Window::create(){
+void Window::create(Instance& instance){
+    // window 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     window = glfwCreateWindow(640, 720, "YAVoG", nullptr, nullptr);
     glfwSetWindowUserPointer(window,(void*)this);
+    
+    // surface
+    VkSurfaceKHR       _surface;
+    if (glfwCreateWindowSurface(*instance.instance, window, nullptr, &_surface) != 0) {
+        throw std::runtime_error("failed to create window surface!");
+    }
+    surface = vk::raii::SurfaceKHR(instance.instance, _surface);
 
+    // callback 
     glfwSetCursorPosCallback(window,[](GLFWwindow* window,double xpos, double ypos){
         auto self = (Window*)glfwGetWindowUserPointer(window);
         self->onCursorPos( xpos,ypos);
     });
+
 }
 void Window::close(){
     glfwDestroyWindow(window);

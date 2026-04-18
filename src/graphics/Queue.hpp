@@ -15,15 +15,18 @@ class Queue
 public:
     vk::raii::Queue queue = nullptr;
     
-    virtual bool isQueueFamilySuitable(vk::QueueFamilyProperties const & qfp)=0;
+    virtual bool isQueueFamilySuitable(vk::QueueFamilyProperties const & qfp,size_t queueFamilyIndex, vk::raii::PhysicalDevice& physicalDevice)=0;
     
 };
 class GraphicsQueue:public Queue
 {
+    vk::raii::SurfaceKHR& surface;
 public:
-    
-    virtual bool isQueueFamilySuitable(vk::QueueFamilyProperties const & qfp) override{
-        return (qfp.queueFlags & vk::QueueFlagBits::eGraphics) != static_cast<vk::QueueFlags>(0);
+
+    GraphicsQueue(Window& window ):surface(window.surface){
+    }
+    virtual bool isQueueFamilySuitable(vk::QueueFamilyProperties const & qfp, size_t queueFamilyIndex, vk::raii::PhysicalDevice& physicalDevice) override{
+        return (qfp.queueFlags & vk::QueueFlagBits::eGraphics) && physicalDevice.getSurfaceSupportKHR(queueFamilyIndex, *surface);
     } 
     
 };

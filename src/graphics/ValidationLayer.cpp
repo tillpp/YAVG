@@ -1,11 +1,11 @@
 #include "ValidationLayer.hpp"
 #include <ranges>
 
-ValidationLayer::ValidationLayer(InstanceSettings& settings)
+ValidationLayer::ValidationLayer(InstanceSettings* settings)
 {
     if (enableValidationLayers)
     {
-        settings.layers.insert(settings.layers.end(),validationLayers.begin(), validationLayers.end());
+        settings->layers.insert(settings->layers.end(),validationLayers.begin(), validationLayers.end());
     }
 
     // check support

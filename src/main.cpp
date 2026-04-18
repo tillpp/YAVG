@@ -8,18 +8,19 @@
 void game() {
     GameFolder gf;
 
-    InstanceSettings instanceSettings;
-    Window window(instanceSettings);
-    ValidationLayer validationLayer(instanceSettings);
     Instance instance;
+    InstanceSettings instanceSettings;
+    Window window(&instanceSettings);
+    ValidationLayer validationLayer(&instanceSettings);
     instance.create(instanceSettings);
+    window.create(instance);
+    
     Device device;
 
-    GraphicsQueue queue;
+    GraphicsQueue queue(window);
     device.create(instance,{&queue});
-
-    window.create();
     
+
     while(window.update()){
         glfwPollEvents();   
     }

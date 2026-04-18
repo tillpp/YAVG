@@ -10,13 +10,16 @@
 
 class Window
 {
-    GLFWwindow *window = nullptr;
 public:
-    Window(InstanceSettings& extensions);
+    GLFWwindow *window = nullptr;
+    vk::raii::SurfaceKHR surface = nullptr;
+
+    
+    Window(InstanceSettings* settings);
     Window(const Window&)=delete;
     ~Window();
 
-    void create();
+    void create(Instance& instance);
     void close();
     bool update();
 

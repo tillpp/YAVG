@@ -21,7 +21,7 @@ class ValidationLayer
     bool enableValidationLayers = true;
 #endif
 public:
-    ValidationLayer(InstanceSettings& settings);
+    ValidationLayer(InstanceSettings* settings);
     ~ValidationLayer();
 };
 

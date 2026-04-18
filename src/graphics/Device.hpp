@@ -21,7 +21,7 @@ public:
     void create(Instance& instance,std::vector<Queue*> queues){
         physicalDevice = pickPhysicalDevice(instance);
 
-        
+        // LOGICLA DEVICE:
         struct QueueInfo{
             Queue*  queue;
             float priority;
@@ -30,13 +30,23 @@ public:
         {
             std::vector<vk::QueueFamilyProperties> queueFamilyProperties = physicalDevice.getQueueFamilyProperties();
             for (auto &&queue : queues){
-                auto queueFamilyProperty = std::ranges::find_if(queueFamilyProperties, [&queue](auto const &qfp) {
-                    return queue->isQueueFamilySuitable(qfp);
-                });
-                auto index = static_cast<uint32_t>(std::distance(queueFamilyProperties.begin(), queueFamilyProperty));
-                float queuePriority = 0.5f;
+                uint32_t queueIndex = ~0;
+                for (uint32_t qfpIndex = 0; qfpIndex < queueFamilyProperties.size(); qfpIndex++)
+                {
+                    if (queue->isQueueFamilySuitable(queueFamilyProperties[qfpIndex],qfpIndex,physicalDevice));
+                    {
+                        // found a queue family that supports both graphics and present
+                        queueIndex = qfpIndex;
+                        break;
+                    }
+                }
+                if (queueIndex == ~0)
+                {
+                    throw std::runtime_error("Could not find a queue for graphics and present -> terminating");
+                }
                 
-                queueMap[index].push_back((QueueInfo){
+                float queuePriority = 0.5f;
+                queueMap[queueIndex].push_back((QueueInfo){
                     .queue = queue,
                     .priority = queuePriority,
                 });
