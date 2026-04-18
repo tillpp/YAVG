@@ -8,11 +8,11 @@
 void game() {
     GameFolder gf;
 
-    InstanceSettings instanceExtensions;
-    Window window(instanceExtensions);
-    ValidationLayer validationLayer(instanceExtensions);
+    InstanceSettings instanceSettings;
+    Window window(instanceSettings);
+    ValidationLayer validationLayer(instanceSettings);
     Instance instance;
-    instance.create(instanceExtensions);
+    instance.create(instanceSettings);
     Device device;
 
     GraphicsQueue queue;
