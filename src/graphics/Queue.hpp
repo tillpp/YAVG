@@ -9,6 +9,7 @@
 #include <map>
 #include <optional>
 #include "Instance.hpp"
+#include "Window.hpp"
 
 class Queue
 {

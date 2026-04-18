@@ -4,6 +4,7 @@
 #include "graphics/Instance.hpp"
 #include "graphics/ValidationLayer.hpp"
 #include "graphics/Device.hpp"
+#include "graphics/Swapchain.hpp"
 
 void game() {
     GameFolder gf;
@@ -14,11 +15,11 @@ void game() {
     ValidationLayer validationLayer(&instanceSettings);
     instance.create(instanceSettings);
     window.create(instance);
-    
     Device device;
-
     GraphicsQueue queue(window);
-    device.create(instance,{&queue});
+    DeviceSettings deviceSettings;
+    Swapchain swapchain(deviceSettings);
+    device.create(instance,deviceSettings,{&queue});
     
 
     while(window.update()){
