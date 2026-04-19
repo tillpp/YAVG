@@ -27,11 +27,15 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/glfw/glfw.git
 )
 FetchContent_Declare(
+  glm
+  GIT_REPOSITORY https://github.com/g-truc/glm.git
+)
+FetchContent_Declare(
   vulkan
   URL https://sdk.lunarg.com/sdk/download/1.4.341.1/linux/vulkansdk-linux-x86_64-1.4.341.1.tar.xz
 )
 
-FetchContent_MakeAvailable(glfw vulkan)
+FetchContent_MakeAvailable(glfw vulkan glm)
 
 add_library(vulkan SHARED IMPORTED)
 set_target_properties(vulkan PROPERTIES
@@ -46,6 +50,7 @@ link_directories(${CMAKE_SOURCE_DIR}/libs/lib)
 add_executable (YAVOG ${SOURCE_FILES})
 target_link_libraries(YAVOG glfw)
 target_link_libraries(YAVOG vulkan)
+target_link_libraries(YAVOG glm)
 
 
 
