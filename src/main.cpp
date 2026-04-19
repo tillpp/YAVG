@@ -1,11 +1,11 @@
 
 #include "GameFolder.hpp"
-#include "graphics/Window.hpp"
-#include "graphics/Instance.hpp"
-#include "graphics/ValidationLayer.hpp"
-#include "graphics/Device.hpp"
-#include "graphics/Pipeline.hpp"
-#include "graphics/CommandBuffer.hpp"
+#include "vulkan/Window.hpp"
+#include "vulkan/Instance.hpp"
+#include "vulkan/ValidationLayer.hpp"
+#include "vulkan/Device.hpp"
+#include "vulkan/Pipeline.hpp"
+#include "vulkan/CommandBuffer.hpp"
 
 
 void game() {
