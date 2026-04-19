@@ -2,6 +2,7 @@
 #include "Device.hpp"
 #include <glm/glm.hpp>
 #include <array>
+#include "CommandBuffer.hpp"
 
 struct Vertex
 {
@@ -24,14 +25,14 @@ const std::vector<Vertex> vertices = {
     {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
 };
 
-//TODO add a parameter in the pipeline to add VertexBuffer.
-class VertexBuffer
-{
-    vk::raii::DeviceMemory vertexBufferMemory = nullptr;
+//NOTE: there are only 4096 max memory allocations, split bigger buffers into smaller ones with offset. (TODO: custom allocator)
+//TODO move this to Buffer.hpp
+class Buffer{
 public:
-    vk::raii::Buffer vertexBuffer = nullptr;
+    vk::raii::DeviceMemory bufferMemory = nullptr;
+    vk::raii::Buffer buffer = nullptr;
 
-    uint32_t findMemoryType(Device& device,uint32_t typeFilter, vk::MemoryPropertyFlags properties) {
+    static uint32_t findMemoryType(Device& device,uint32_t typeFilter, vk::MemoryPropertyFlags properties) {
         vk::PhysicalDeviceMemoryProperties memProperties = device.physicalDevice.getMemoryProperties();
         for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
         {
@@ -43,25 +44,57 @@ public:
 
         throw std::runtime_error("failed to find suitable memory type!");
     }
-    void create(Device& device){
-        vk::BufferCreateInfo bufferInfo{
-            .size        = sizeof(vertices[0]) * vertices.size(),
-		    .usage       = vk::BufferUsageFlagBits::eVertexBuffer,
-		    .sharingMode = vk::SharingMode::eExclusive};
-        vertexBuffer = vk::raii::Buffer(device.device, bufferInfo);
+    void createBuffer(Device& device,vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties) {
+        vk::BufferCreateInfo bufferInfo{ .size = size, .usage = usage, .sharingMode = vk::SharingMode::eExclusive };
+        buffer = vk::raii::Buffer(device.device, bufferInfo);
+        vk::MemoryRequirements memRequirements = buffer.getMemoryRequirements();
+        vk::MemoryAllocateInfo allocInfo{ .allocationSize = memRequirements.size, .memoryTypeIndex = findMemoryType(device,memRequirements.memoryTypeBits, properties) };
+        bufferMemory = vk::raii::DeviceMemory(device.device, allocInfo);
+        buffer.bindMemory(*bufferMemory, 0);
+    }
 
-        vk::MemoryRequirements memRequirements = vertexBuffer.getMemoryRequirements();
+    //TODO: use  VK_COMMAND_POOL_CREATE_TRANSIENT_BIT for this commandPool (short lives commandBuffers)
+    //TODO: assert that Queue of commandPool needs to support eTransfer
+    static void copyBuffer(CommandPool& commandPool,Buffer& srcBuffer, Buffer& dstBuffer, vk::DeviceSize size) {
+        CommandBuffer commandBuffer(commandPool);
+        commandBuffer.commandBuffer.begin(vk::CommandBufferBeginInfo{
+            .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit
+        });
+        commandBuffer.commandBuffer.copyBuffer(srcBuffer.buffer,dstBuffer.buffer,vk::BufferCopy(0,0,size));
+        commandBuffer.commandBuffer.end();
 
-        vk::MemoryAllocateInfo memoryAllocateInfo{
-           .allocationSize  = memRequirements.size,
-            .memoryTypeIndex = findMemoryType(device,memRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
-        };
-        vertexBufferMemory = vk::raii::DeviceMemory(device.device, memoryAllocateInfo);
-        vertexBuffer.bindMemory( *vertexBufferMemory, 0 );
+        commandPool.queue.queue.submit(vk::SubmitInfo{ .commandBufferCount = 1, .pCommandBuffers = &*commandBuffer.commandBuffer }, nullptr);
+        commandPool.queue.queue.waitIdle(); //TODO: use fence  instead to copy multiple buffers at once.
 
-        void* data = vertexBufferMemory.mapMemory(0, bufferInfo.size);
-        memcpy(data, vertices.data(), bufferInfo.size);
-        vertexBufferMemory.unmapMemory();
+    }
+
+};
+//TODO add a parameter in the pipeline to add VertexBuffer.
+//TODO inherit Buffer privately.
+class VertexBuffer:public Buffer
+{
+public:
+    //create vertexBuffer
+    void create(Device& device,CommandPool& commandPool){
+        //create StagingBuffer
+        Buffer stagingBuffer;
+        {
+            auto size = sizeof(vertices[0]) * vertices.size();
+            auto usage = vk::BufferUsageFlagBits::eTransferSrc;
+            auto properties = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent;
+            stagingBuffer.createBuffer(device,size, usage,properties);
+
+            void* dataStaging = stagingBuffer.bufferMemory.mapMemory(0, size);
+            memcpy(dataStaging, vertices.data(), size);
+            stagingBuffer.bufferMemory.unmapMemory();
+        }
+
+        auto size = sizeof(vertices[0]) * vertices.size();
+        auto usage = vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst;
+        auto properties = vk::MemoryPropertyFlagBits::eDeviceLocal;
+        createBuffer(device,size, usage,properties);
+        
+        copyBuffer(commandPool,stagingBuffer, *this, size);
     }
 };
 

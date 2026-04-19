@@ -28,7 +28,7 @@ public:
     GraphicsQueue(Window& window ):surface(window.surface){
     }
     virtual bool isQueueFamilySuitable(vk::QueueFamilyProperties const & qfp, size_t queueFamilyIndex, vk::raii::PhysicalDevice& physicalDevice) override{
-        return (qfp.queueFlags & vk::QueueFlagBits::eGraphics) && physicalDevice.getSurfaceSupportKHR(queueFamilyIndex, *surface);
+        return (qfp.queueFlags & vk::QueueFlagBits::eGraphics)&& (qfp.queueFlags & vk::QueueFlagBits::eTransfer) && physicalDevice.getSurfaceSupportKHR(queueFamilyIndex, *surface);
     } 
     
 };

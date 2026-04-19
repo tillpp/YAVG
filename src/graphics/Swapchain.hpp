@@ -1,5 +1,6 @@
 #pragma once
 #include "Device.hpp"
+#include <limits>
 
 class Swapchain
 {

@@ -117,6 +117,7 @@ std::optional<int> Device::isDeviceSuitable( vk::raii::PhysicalDevice const & ph
                                     { return strcmp( availableDeviceExtension.extensionName, requiredDeviceExtension ) == 0; } );
         } );
 
+    //TODO refactor this:
     // Check if the physicalDevice supports the required features (dynamic rendering and extended dynamic state)
     auto features =
         physicalDevice

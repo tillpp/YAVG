@@ -23,11 +23,11 @@ void game() {
     Swapchain swapchain(deviceSettings);
     device.create(instance,deviceSettings,{&queue});
     swapchain.create(window,device);
-    VertexBuffer vertexBuffer;
-    vertexBuffer.create(device);
     Pipeline pipeline;
     pipeline.create(device,swapchain);
     CommandPool commandPool(device,queue);
+    VertexBuffer vertexBuffer;
+    vertexBuffer.create(device,commandPool);
 
     uint32_t frameIndex = 0;
     constexpr int MAX_FRAMES_IN_FLIGHT = 2;
@@ -59,7 +59,7 @@ void game() {
             commandBuffer.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapchain.swapChainExtent.width), static_cast<float>(swapchain.swapChainExtent.height), 0.0f, 1.0f));
             commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapchain.swapChainExtent));
             
-            commandBuffer.bindVertexBuffers(0, *vertexBuffer.vertexBuffer, {0});
+            commandBuffer.bindVertexBuffers(0, *vertexBuffer.buffer, {0});
             commandBuffer.draw(static_cast<uint32_t>(vertices.size()), 1, 0, 0);
         }
         commandBuffers[frameIndex].end(swapchain,imageIndex);
