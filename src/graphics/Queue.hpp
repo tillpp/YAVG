@@ -15,7 +15,8 @@ class Queue
 {
 public:
     vk::raii::Queue queue = nullptr;
-    
+    uint32_t queueFamilyIndex;
+
     virtual bool isQueueFamilySuitable(vk::QueueFamilyProperties const & qfp,size_t queueFamilyIndex, vk::raii::PhysicalDevice& physicalDevice)=0;
     
 };

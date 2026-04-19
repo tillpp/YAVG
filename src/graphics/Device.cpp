@@ -20,6 +20,7 @@ void Device::create(Instance& instance,DeviceSettings settings,std::vector<Queue
                 {
                     // found a queue family that supports both graphics and present
                     queueIndex = qfpIndex;
+                    queue->queueFamilyIndex = qfpIndex;
                     break;
                 }
             }
@@ -54,7 +55,7 @@ void Device::create(Instance& instance,DeviceSettings settings,std::vector<Queue
     // TODO: refactor features into DeviceSettings
     // Create a chain of feature structures
     vk::PhysicalDeviceFeatures2 a{};// vk::PhysicalDeviceFeatures2 (empty for now)
-    vk::PhysicalDeviceVulkan13Features b{.dynamicRendering = true}; // Enable dynamic rendering from Vulkan 1.3
+    vk::PhysicalDeviceVulkan13Features b{.synchronization2 = true,.dynamicRendering = true}; // Enable dynamic rendering from Vulkan 1.3
     vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT c{.extendedDynamicState = true };  // Enable extended dynamic state from the extension
     vk::PhysicalDeviceVulkan11Features d{.shaderDrawParameters = true};
     a.pNext = &b;
@@ -120,7 +121,8 @@ std::optional<int> Device::isDeviceSuitable( vk::raii::PhysicalDevice const & ph
     auto features =
         physicalDevice
         .template getFeatures2<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan13Features, vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT,vk::PhysicalDeviceVulkan11Features>();
-    bool supportsRequiredFeatures = features.template get<vk::PhysicalDeviceVulkan13Features>().dynamicRendering &&
+    bool supportsRequiredFeatures = features.template get<vk::PhysicalDeviceVulkan13Features>().synchronization2 &&
+                                    features.template get<vk::PhysicalDeviceVulkan13Features>().dynamicRendering &&
                                     features.template get<vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>().extendedDynamicState &&
                                     features.template get<vk::PhysicalDeviceVulkan11Features>().shaderDrawParameters;
 

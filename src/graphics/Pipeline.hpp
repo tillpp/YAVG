@@ -19,8 +19,8 @@ static std::vector<char> readFile(const std::string& filename) {
 class Pipeline
 {
     vk::raii::PipelineLayout pipelineLayout = nullptr;
-    vk::raii::Pipeline graphicsPipeline = nullptr;
 public:
+    vk::raii::Pipeline graphicsPipeline = nullptr;
 
     [[nodiscard]] vk::raii::ShaderModule createShaderModule(Device& device,const std::vector<char>& code) const{
         vk::ShaderModuleCreateInfo createInfo{ .codeSize = code.size() * sizeof(char), .pCode = reinterpret_cast<const uint32_t*>(code.data()) };
