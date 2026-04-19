@@ -26,63 +26,81 @@ void game() {
     Pipeline pipeline;
     pipeline.create(device,swapchain);
     CommandPool commandPool(device,queue);
-    CommandBuffer commandBuffer(commandPool);
     
+
+    uint32_t frameIndex = 0;
+    constexpr int MAX_FRAMES_IN_FLIGHT = 2;
+
+    std::vector<CommandBuffer> commandBuffers;
+    std::vector<vk::raii::Semaphore> presentCompleteSemaphores;
+    std::vector<vk::raii::Semaphore> renderFinishedSemaphores;
+    std::vector<vk::raii::Fence> inFlightFences;
+
+    // TODO refactor the following in the future:
     auto recordCommandBuffer = [&](uint32_t imageIndex)
     {
-        commandBuffer.begin(swapchain,imageIndex);
-
+        commandBuffers[frameIndex].begin(swapchain,imageIndex);
+        auto& commandBuffer = commandBuffers[frameIndex].commandBuffer;
         {
-            commandBuffer.commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline.graphicsPipeline);
-            commandBuffer.commandBuffer.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapchain.swapChainExtent.width), static_cast<float>(swapchain.swapChainExtent.height), 0.0f, 1.0f));
-            commandBuffer.commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapchain.swapChainExtent));
 
-            commandBuffer.commandBuffer.draw(3, 1, 0, 0);
+            commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline.graphicsPipeline);
+            commandBuffer.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapchain.swapChainExtent.width), static_cast<float>(swapchain.swapChainExtent.height), 0.0f, 1.0f));
+            commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapchain.swapChainExtent));
+
+            commandBuffer.draw(3, 2, 0, 0);
 
         }
-        commandBuffer.end(swapchain,imageIndex);
+        commandBuffers[frameIndex].end(swapchain,imageIndex);
     };
 
 
+    
 
-    vk::raii::Semaphore presentCompleteSemaphore = nullptr;
-    vk::raii::Semaphore renderFinishedSemaphore  = nullptr;
-    vk::raii::Fence     drawFence                = nullptr;
-
+    assert(presentCompleteSemaphores.empty() && renderFinishedSemaphores.empty() && inFlightFences.empty());
+    for (size_t i = 0; i < swapchain.swapChainImages.size(); i++)
+	{
+		renderFinishedSemaphores.emplace_back(device.device, vk::SemaphoreCreateInfo());
+	}
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+    {
+        presentCompleteSemaphores.emplace_back(device.device, vk::SemaphoreCreateInfo());
+        inFlightFences.emplace_back(device.device, vk::FenceCreateInfo{.flags = vk::FenceCreateFlagBits::eSignaled});
+        commandBuffers.emplace_back(commandPool);
+    }
+    
+    
     auto drawFrame = [&](){
-        auto fenceResult = device.device.waitForFences(*drawFence, vk::True, UINT64_MAX);
+        auto fenceResult = device.device.waitForFences(*inFlightFences[frameIndex], vk::True, UINT64_MAX);
 		if (fenceResult != vk::Result::eSuccess)
 		{
 			throw std::runtime_error("failed to wait for fence!");
 		}
-		device.device.resetFences(*drawFence);
-        auto [result, imageIndex] = swapchain.swapChain.acquireNextImage(UINT64_MAX, *presentCompleteSemaphore, nullptr);
+		device.device.resetFences(*inFlightFences[frameIndex]);
+        auto [result, imageIndex] = swapchain.swapChain.acquireNextImage(UINT64_MAX, *presentCompleteSemaphores[frameIndex], nullptr);
+		commandBuffers[frameIndex].commandBuffer.reset();
         recordCommandBuffer(imageIndex);
-        queue.queue.waitIdle();
         vk::PipelineStageFlags waitDestinationStageMask( vk::PipelineStageFlagBits::eColorAttachmentOutput );
         const vk::SubmitInfo   submitInfo{
             .waitSemaphoreCount   = 1,
-            .pWaitSemaphores      = &*presentCompleteSemaphore,
+            .pWaitSemaphores      = &*presentCompleteSemaphores[frameIndex],
             .pWaitDstStageMask    = &waitDestinationStageMask,
             .commandBufferCount   = 1,
-            .pCommandBuffers      = &*commandBuffer.commandBuffer,
+            .pCommandBuffers      = &*commandBuffers[frameIndex].commandBuffer,
             .signalSemaphoreCount = 1,
-            .pSignalSemaphores    = &*renderFinishedSemaphore
+            .pSignalSemaphores    = &*renderFinishedSemaphores[imageIndex]
         };
-        queue.queue.submit(submitInfo, *drawFence);
+        queue.queue.submit(submitInfo, *inFlightFences[frameIndex]);
 
         const vk::PresentInfoKHR presentInfoKHR{
             .waitSemaphoreCount = 1,
-            .pWaitSemaphores    = &*renderFinishedSemaphore,
+            .pWaitSemaphores    = &*renderFinishedSemaphores[imageIndex],
             .swapchainCount     = 1,
             .pSwapchains        = &*swapchain.swapChain,
             .pImageIndices      = &imageIndex};
         result = queue.queue.presentKHR(presentInfoKHR);
-    };
 
-    presentCompleteSemaphore = vk::raii::Semaphore(device.device, vk::SemaphoreCreateInfo());
-    renderFinishedSemaphore  = vk::raii::Semaphore(device.device, vk::SemaphoreCreateInfo());
-    drawFence                = vk::raii::Fence(device.device, {.flags = vk::FenceCreateFlagBits::eSignaled});
+        frameIndex = (frameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
+    };
 
     while(window.update()){
         glfwPollEvents();
