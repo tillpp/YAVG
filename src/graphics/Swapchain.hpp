@@ -3,8 +3,8 @@
 
 class Swapchain
 {
+public:
     vk::raii::SwapchainKHR swapChain = nullptr;
-    public:
     std::vector<vk::Image> swapChainImages;
     vk::SurfaceFormatKHR   swapChainSurfaceFormat;
     vk::Extent2D           swapChainExtent;
