@@ -35,7 +35,18 @@ void game() {
     std::vector<vk::raii::Semaphore> presentCompleteSemaphores;
     std::vector<vk::raii::Semaphore> renderFinishedSemaphores;
     std::vector<vk::raii::Fence> inFlightFences;
+    
+    auto recreateSwapChain = [&](){
+        int width = 0, height = 0;
+        glfwGetFramebufferSize(window.window, &width, &height);
+        while (width == 0 || height == 0) {
+            glfwGetFramebufferSize(window.window, &width, &height);
+            glfwWaitEvents();
+        }
+        device.device.waitIdle();
 
+        swapchain.recreate(window,device);
+    };
     // TODO refactor the following in the future:
     auto recordCommandBuffer = [&](uint32_t imageIndex)
     {
@@ -75,8 +86,18 @@ void game() {
 		{
 			throw std::runtime_error("failed to wait for fence!");
 		}
-		device.device.resetFences(*inFlightFences[frameIndex]);
         auto [result, imageIndex] = swapchain.swapChain.acquireNextImage(UINT64_MAX, *presentCompleteSemaphores[frameIndex], nullptr);
+        if(result == vk::Result::eErrorOutOfDateKHR){
+            recreateSwapChain();
+            return;
+        }
+        else if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR)
+        {
+            assert(result == vk::Result::eTimeout || result == vk::Result::eNotReady);
+            throw std::runtime_error("failed to acquire swap chain image!");
+        }
+        
+        device.device.resetFences(*inFlightFences[frameIndex]);
 		commandBuffers[frameIndex].commandBuffer.reset();
         recordCommandBuffer(imageIndex);
         vk::PipelineStageFlags waitDestinationStageMask( vk::PipelineStageFlagBits::eColorAttachmentOutput );
@@ -91,6 +112,7 @@ void game() {
         };
         queue.queue.submit(submitInfo, *inFlightFences[frameIndex]);
 
+
         const vk::PresentInfoKHR presentInfoKHR{
             .waitSemaphoreCount = 1,
             .pWaitSemaphores    = &*renderFinishedSemaphores[imageIndex],
@@ -98,7 +120,16 @@ void game() {
             .pSwapchains        = &*swapchain.swapChain,
             .pImageIndices      = &imageIndex};
         result = queue.queue.presentKHR(presentInfoKHR);
-
+        if ((result == vk::Result::eSuboptimalKHR) || (result == vk::Result::eErrorOutOfDateKHR) || window.framebufferResized)
+        {
+            recreateSwapChain();
+        }
+        else
+        {
+            // There are no other success codes than eSuccess; on any error code, presentKHR already threw an exception.
+            assert(result == vk::Result::eSuccess);
+        }
+        
         frameIndex = (frameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
     };
 

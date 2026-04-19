@@ -25,4 +25,6 @@ public:
 
     //callbacks
     void onCursorPos(double xpos, double ypos);
+
+    bool framebufferResized = false;
 };

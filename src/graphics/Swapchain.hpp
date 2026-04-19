@@ -97,4 +97,13 @@ public:
         }
 
     }
+
+    void recreate(Window& window,Device& device){
+        device.device.waitIdle();
+
+        // cleanup swap chain
+        swapChainImageViews.clear();
+        swapChain = nullptr;
+        create(window,device);
+    }
 };

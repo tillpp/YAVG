@@ -51,6 +51,10 @@ void Window::create(Instance& instance){
     surface = vk::raii::SurfaceKHR(instance.instance, _surface);
 
     // callback 
+    glfwSetFramebufferSizeCallback(window,[](GLFWwindow* window, int , int height){
+        auto self = (Window*)glfwGetWindowUserPointer(window);
+        self->framebufferResized = true;
+    });
     glfwSetCursorPosCallback(window,[](GLFWwindow* window,double xpos, double ypos){
         auto self = (Window*)glfwGetWindowUserPointer(window);
         self->onCursorPos( xpos,ypos);
@@ -63,6 +67,8 @@ void Window::close(){
 }
 bool Window::update(){
     assert(window);
+    // TODO: maybe have an EventQueue that resets all changed variables. If we got a lot.
+    framebufferResized = false;
     return !glfwWindowShouldClose(window);
 }
 void Window::onCursorPos(double xpos, double ypos){
