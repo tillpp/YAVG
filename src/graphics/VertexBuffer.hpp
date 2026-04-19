@@ -19,10 +19,15 @@ struct Vertex
                {.location = 1, .binding = 0, .format = vk::Format::eR32G32B32Sfloat, .offset = offsetof(Vertex, color)}}};
     }
 };
+
 const std::vector<Vertex> vertices = {
-    {{0.0f, -0.5f}, {1.0f, 1.0f, 1.0f}},
-    {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-    {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+    {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+    {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+    {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+    {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+};
+const std::vector<uint16_t> indices = {
+    0, 1, 2, 2, 3, 0
 };
 
 //NOTE: there are only 4096 max memory allocations, split bigger buffers into smaller ones with offset. (TODO: custom allocator)
@@ -67,15 +72,9 @@ public:
         commandPool.queue.queue.waitIdle(); //TODO: use fence  instead to copy multiple buffers at once.
 
     }
-
-};
-//TODO add a parameter in the pipeline to add VertexBuffer.
-//TODO inherit Buffer privately.
-class VertexBuffer:public Buffer
-{
 public:
     //create vertexBuffer
-    void create(Device& device,CommandPool& commandPool){
+    void createVertexBuffer(Device& device,CommandPool& commandPool){
         //create StagingBuffer
         Buffer stagingBuffer;
         {
@@ -96,5 +95,37 @@ public:
         
         copyBuffer(commandPool,stagingBuffer, *this, size);
     }
+
+    //TODO: a lot of duplicate code with VertexBuffer create
+    // create IndexBuffer
+    void createIndexBuffer(Device& device,CommandPool& commandPool){
+        //create StagingBuffer
+        Buffer stagingBuffer;
+        {
+            auto size = sizeof(indices[0]) * indices.size();
+            auto usage = vk::BufferUsageFlagBits::eTransferSrc;
+            auto properties = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent;
+            stagingBuffer.createBuffer(device,size, usage,properties);
+
+            void* dataStaging = stagingBuffer.bufferMemory.mapMemory(0, size);
+            memcpy(dataStaging, indices.data(), size);
+            stagingBuffer.bufferMemory.unmapMemory();
+        }
+
+        auto size = sizeof(indices[0]) * indices.size();
+        auto usage = vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst;
+        auto properties = vk::MemoryPropertyFlagBits::eDeviceLocal;
+        createBuffer(device,size, usage,properties);
+        
+        copyBuffer(commandPool,stagingBuffer, *this, size);
+    }
+};
+//TODO add a parameter in the pipeline to add VertexBuffer.
+//TODO inherit Buffer privately.
+//TODO: have IndexBuffer
+class VertexBuffer:public Buffer
+{
+public:
+    
 };
 
