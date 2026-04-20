@@ -8,15 +8,17 @@ struct Vertex
 {
     glm::vec2 pos;
     glm::vec3 color;
+    glm::vec2 texCoord;
 
     static vk::VertexInputBindingDescription getBindingDescription()
     {
         return {.binding = 0, .stride = sizeof(Vertex), .inputRate = vk::VertexInputRate::eVertex};
     }
-    static std::array<vk::VertexInputAttributeDescription, 2> getAttributeDescriptions()
+    static std::array<vk::VertexInputAttributeDescription,3> getAttributeDescriptions()
     {
       return {{{.location = 0, .binding = 0, .format = vk::Format::eR32G32Sfloat, .offset = offsetof(Vertex, pos)},
-               {.location = 1, .binding = 0, .format = vk::Format::eR32G32B32Sfloat, .offset = offsetof(Vertex, color)}}};
+               {.location = 1, .binding = 0, .format = vk::Format::eR32G32B32Sfloat, .offset = offsetof(Vertex, color)},
+               {.location = 2, .binding = 0, .format = vk::Format::eR32G32Sfloat, .offset = offsetof(Vertex, texCoord)}}};
     }
 };
 
@@ -54,15 +56,9 @@ public:
     //TODO: assert that Queue of commandPool needs to support eTransfer
     static void copyBuffer(CommandPool& commandPool,Buffer& srcBuffer, Buffer& dstBuffer, vk::DeviceSize size) {
         CommandBuffer commandBuffer(commandPool);
-        commandBuffer.commandBuffer.begin(vk::CommandBufferBeginInfo{
-            .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit
-        });
+        commandBuffer.beginSingleTimeCommands();
         commandBuffer.commandBuffer.copyBuffer(srcBuffer.buffer,dstBuffer.buffer,vk::BufferCopy(0,0,size));
-        commandBuffer.commandBuffer.end();
-
-        commandPool.queue.queue.submit(vk::SubmitInfo{ .commandBufferCount = 1, .pCommandBuffers = &*commandBuffer.commandBuffer }, nullptr);
-        commandPool.queue.queue.waitIdle(); //TODO: use fence  instead to copy multiple buffers at once.
-
+        commandBuffer.endSingleTimeCommands(commandPool);
     }
 public:
     //create vertexBuffer

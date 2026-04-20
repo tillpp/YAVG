@@ -34,8 +34,12 @@ FetchContent_Declare(
   vulkan
   URL https://sdk.lunarg.com/sdk/download/1.4.341.1/linux/vulkansdk-linux-x86_64-1.4.341.1.tar.xz
 )
+FetchContent_Declare(
+  stb
+  GIT_REPOSITORY https://github.com/nothings/stb.git
+)
 
-FetchContent_MakeAvailable(glfw vulkan glm)
+FetchContent_MakeAvailable(glfw vulkan glm stb)
 
 add_library(vulkan SHARED IMPORTED)
 set_target_properties(vulkan PROPERTIES
@@ -52,7 +56,9 @@ target_link_libraries(YAVOG glfw)
 target_link_libraries(YAVOG vulkan)
 target_link_libraries(YAVOG glm)
 
-
+target_include_directories(YAVOG PRIVATE
+    ${stb_SOURCE_DIR}
+)
 
 
 # shaders

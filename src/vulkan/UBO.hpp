@@ -17,19 +17,12 @@ struct UniformBufferObject {
 class UBO
 {
 public:
-    vk::raii::DescriptorSetLayout descriptorSetLayout = nullptr;
 
     std::vector<Buffer> uniformBuffers;
     std::vector<void*> uniformBuffersMapped;
 
     //TODO: pipeline description into a different class.
     void create(Device& device,const size_t MAX_FRAMES_IN_FLIGHT){
-        // for pipeline
-        vk::DescriptorSetLayoutBinding uboLayoutBinding(0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex, nullptr);
-        vk::DescriptorSetLayoutCreateInfo layoutInfo{.bindingCount = 1, .pBindings = &uboLayoutBinding};
-        descriptorSetLayout = vk::raii::DescriptorSetLayout(device.device, layoutInfo);
-
-
 
         // for memory
         uniformBuffers.clear();
@@ -65,27 +58,6 @@ public:
         ubo.proj[1][1] *= -1;
 
         memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
-    }
-
-    vk::raii::DescriptorPool descriptorPool = nullptr;
-    void createDescriptorPool(Device& device,const size_t MAX_FRAMES_IN_FLIGHT){
-        vk::DescriptorPoolSize poolSize(vk::DescriptorType::eUniformBuffer, MAX_FRAMES_IN_FLIGHT);
-        vk::DescriptorPoolCreateInfo poolInfo{ .flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, .maxSets = MAX_FRAMES_IN_FLIGHT, .poolSizeCount = 1, .pPoolSizes = &poolSize };
-        descriptorPool = vk::raii::DescriptorPool(device.device, poolInfo);
-    }
-    std::vector<vk::raii::DescriptorSet> descriptorSets;
-    void createDescriptorSets(Device& device,const size_t MAX_FRAMES_IN_FLIGHT) {
-        std::vector<vk::DescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, *descriptorSetLayout);
-        vk::DescriptorSetAllocateInfo allocInfo{ .descriptorPool = descriptorPool, .descriptorSetCount = static_cast<uint32_t>(layouts.size()), .pSetLayouts = layouts.data() };
-
-        descriptorSets.clear();
-        descriptorSets = device.device.allocateDescriptorSets(allocInfo);
-
-        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            vk::DescriptorBufferInfo bufferInfo{ .buffer = uniformBuffers[i].buffer, .offset = 0, .range = sizeof(UniformBufferObject) };
-            vk::WriteDescriptorSet descriptorWrite{ .dstSet = descriptorSets[i], .dstBinding = 0, .dstArrayElement = 0, .descriptorCount = 1, .descriptorType = vk::DescriptorType::eUniformBuffer, .pBufferInfo = &bufferInfo };
-            device.device.updateDescriptorSets(descriptorWrite, {});
-        }
     }
 };
 

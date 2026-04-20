@@ -11,6 +11,18 @@ public:
     vk::raii::CommandBuffer commandBuffer = nullptr;
     CommandBuffer(CommandPool& pool);
 
+    void beginSingleTimeCommands(){
+        vk::CommandBufferBeginInfo beginInfo{ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit };
+        commandBuffer.begin(beginInfo);
+    }
+    void endSingleTimeCommands(CommandPool& pool) {
+        commandBuffer.end();
+
+        vk::SubmitInfo submitInfo{ .commandBufferCount = 1, .pCommandBuffers = &*commandBuffer };
+        pool.queue.queue.submit(submitInfo, nullptr);
+        pool.queue.queue.waitIdle(); //TODO: use fence  instead to copy multiple buffers at once.
+    }
+
     //TODO: begin, end and transition_image_layout need a better place to live.
     void begin(Swapchain& swapchain,uint32_t imageIndex);
     void end(Swapchain& swapchain,uint32_t imageIndex);

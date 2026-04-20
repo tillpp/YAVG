@@ -8,5 +8,6 @@ public:
     Queue& queue;
     vk::raii::CommandPool commandPool = nullptr;
 
+    
     CommandPool(Device& device, Queue& queue);
 };

@@ -6,13 +6,14 @@
 #include "vulkan/Device.hpp"
 #include "vulkan/Pipeline.hpp"
 #include "vulkan/CommandBuffer.hpp"
-
+#include "vulkan/Image.hpp"
+#include <array>
 
 const std::vector<Vertex> vertices = {
-    {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-    {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-    {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-    {{-0.5f, 0.5f}, {1.0f, 0.0f, 1.0f}}
+    {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+    {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+    {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+    {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
 };
 const std::vector<uint16_t> indices = {
     0, 1, 2, 2, 3, 0
@@ -39,15 +40,63 @@ void game() {
     swapchain.create(window,device);
     UBO ubo;
     ubo.create(device,MAX_FRAMES_IN_FLIGHT);
-    ubo.createDescriptorPool(device,MAX_FRAMES_IN_FLIGHT);
-    ubo.createDescriptorSets(device,MAX_FRAMES_IN_FLIGHT);
+    vk::raii::DescriptorSetLayout descriptorSetLayout = nullptr;
+    {
+        std::array bindings = {
+            vk::DescriptorSetLayoutBinding( 0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex, nullptr),
+            vk::DescriptorSetLayoutBinding( 1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment, nullptr)
+        };
+
+        vk::DescriptorSetLayoutCreateInfo layoutInfo{.bindingCount = bindings.size(), .pBindings = bindings.data()};
+        descriptorSetLayout = vk::raii::DescriptorSetLayout(device.device, layoutInfo);
+
+    }
+    vk::raii::DescriptorPool descriptorPool = nullptr;
+    {
+        std::array poolSize {
+            vk::DescriptorPoolSize( vk::DescriptorType::eUniformBuffer, MAX_FRAMES_IN_FLIGHT),
+            vk::DescriptorPoolSize(  vk::DescriptorType::eCombinedImageSampler, MAX_FRAMES_IN_FLIGHT)
+        };
+        vk::DescriptorPoolCreateInfo poolInfo{ 
+            .flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
+            .maxSets = MAX_FRAMES_IN_FLIGHT,
+            .poolSizeCount = poolSize.size(),
+            .pPoolSizes = poolSize.data()
+        };
+        descriptorPool = vk::raii::DescriptorPool(device.device, poolInfo);
+    }
+    
     Pipeline pipeline;
-    pipeline.create(device,swapchain,ubo);
+    pipeline.create(device,swapchain, descriptorSetLayout);
     CommandPool commandPool(device,queue);
     Buffer vertexBuffer,indexBuffer;
     vertexBuffer.createVertexBuffer(device,commandPool,vertices);
     indexBuffer.createIndexBuffer(device,commandPool,indices);
-    
+    Image image;
+    image.create(commandPool);
+    std::vector<vk::raii::DescriptorSet> descriptorSets;
+    {
+        std::vector<vk::DescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, *descriptorSetLayout);
+        vk::DescriptorSetAllocateInfo allocInfo{ .descriptorPool = descriptorPool, .descriptorSetCount = static_cast<uint32_t>(layouts.size()), .pSetLayouts = layouts.data() };
+
+        descriptorSets.clear();
+        descriptorSets = device.device.allocateDescriptorSets(allocInfo);
+
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            vk::DescriptorBufferInfo bufferInfo{ .buffer = ubo.uniformBuffers[i].buffer, .offset = 0, .range = sizeof(UniformBufferObject) };
+            vk::DescriptorImageInfo imageInfo{ .sampler = image.textureSampler, .imageView = image.imageView, .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal};
+            
+            std::array descriptorWrites{
+                vk::WriteDescriptorSet{ .dstSet = descriptorSets[i], .dstBinding = 0, .dstArrayElement = 0, .descriptorCount = 1,
+                    .descriptorType = vk::DescriptorType::eUniformBuffer, .pBufferInfo = &bufferInfo },
+                vk::WriteDescriptorSet{ .dstSet = descriptorSets[i], .dstBinding = 1, .dstArrayElement = 0, .descriptorCount = 1,
+                    .descriptorType = vk::DescriptorType::eCombinedImageSampler, .pImageInfo = &imageInfo }
+            };
+            device.device.updateDescriptorSets(descriptorWrites, {});
+        }
+    }
+
+
     uint32_t frameIndex = 0;
     
     std::vector<CommandBuffer> commandBuffers;
@@ -84,7 +133,7 @@ void game() {
             commandBuffer.bindVertexBuffers(0, *vertexBuffer.buffer, {0});
             commandBuffer.bindIndexBuffer(*indexBuffer.buffer, 0, vk::IndexType::eUint16);
             //TODO: learn more about dynamic descriptors
-            commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline.pipelineLayout, 0, *ubo.descriptorSets[frameIndex], nullptr);
+            commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline.pipelineLayout, 0, *descriptorSets[frameIndex], nullptr);
             commandBuffer.drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0,0);
         }
         commandBuffers[frameIndex].end(swapchain,imageIndex);

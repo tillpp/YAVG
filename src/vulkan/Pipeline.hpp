@@ -29,7 +29,7 @@ class Pipeline
         vk::raii::ShaderModule shaderModule{ device.device, createInfo };
         return shaderModule;
     }   
-    void create(Device& device,Swapchain& swapChain,UBO& ubo) {
+    void create(Device& device,Swapchain& swapChain,vk::raii::DescriptorSetLayout& descriptorSetLayout) {
         // shader
         vk::raii::ShaderModule shaderModule = createShaderModule(device,readFile("bin/slang.spv"));
         vk::PipelineShaderStageCreateInfo vertShaderStageInfo{ .stage = vk::ShaderStageFlagBits::eVertex, .module = shaderModule,  .pName = "vertMain" };
@@ -86,7 +86,7 @@ class Pipeline
         
         // PipelineLayout (for uniforms later)
         {
-            vk::PipelineLayoutCreateInfo pipelineLayoutInfo{ .setLayoutCount = 1, .pSetLayouts = &*ubo.descriptorSetLayout, .pushConstantRangeCount = 0 };
+            vk::PipelineLayoutCreateInfo pipelineLayoutInfo{ .setLayoutCount = 1, .pSetLayouts = &*descriptorSetLayout, .pushConstantRangeCount = 0 };
             pipelineLayout = vk::raii::PipelineLayout(device.device, pipelineLayoutInfo);
         }
         
