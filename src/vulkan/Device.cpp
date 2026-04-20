@@ -88,6 +88,8 @@ std::optional<int> Device::isDeviceSuitable( vk::raii::PhysicalDevice const & ph
 
     // Discrete GPUs have a significant performance advantage
     if (deviceProperties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu) {
+        score += 1000*1000;
+    }else if (deviceProperties.deviceType == vk::PhysicalDeviceType::eIntegratedGpu) {
         score += 1000;
     }
 

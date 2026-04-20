@@ -120,7 +120,7 @@ void game() {
     {
         float aspectRatio = static_cast<float>(swapchain.swapChainExtent.width) / static_cast<float>(swapchain.swapChainExtent.height);
 
-        bool zoom = glfwGetKey(window.window,GLFW_KEY_C) == GLFW_PRESS;
+        bool zoom = glfwGetKey(window.window,GLFW_KEY_C) != GLFW_PRESS;
         ubo.updateUniformBuffer(frameIndex,aspectRatio, zoom);
         commandBuffers[frameIndex].begin(swapchain,imageIndex);
         auto& commandBuffer = commandBuffers[frameIndex].commandBuffer;
