@@ -8,12 +8,24 @@
 #include "vulkan/CommandBuffer.hpp"
 
 
+const std::vector<Vertex> vertices = {
+    {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+    {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+    {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+    {{-0.5f, 0.5f}, {1.0f, 0.0f, 1.0f}}
+};
+const std::vector<uint16_t> indices = {
+    0, 1, 2, 2, 3, 0
+};
+
 void game() {
     GameFolder gf;
 
     Instance instance;
+    
     InstanceSettings instanceSettings;
     Window window(&instanceSettings);
+
     ValidationLayer validationLayer(&instanceSettings);
     instance.create(instanceSettings);
     window.create(instance);
@@ -27,12 +39,12 @@ void game() {
     pipeline.create(device,swapchain);
     CommandPool commandPool(device,queue);
     Buffer vertexBuffer,indexBuffer;
-    vertexBuffer.createVertexBuffer(device,commandPool);
-    indexBuffer.createIndexBuffer(device,commandPool);
-
+    vertexBuffer.createVertexBuffer(device,commandPool,vertices);
+    indexBuffer.createIndexBuffer(device,commandPool,indices);
+    
     uint32_t frameIndex = 0;
     constexpr int MAX_FRAMES_IN_FLIGHT = 2;
-
+    
     std::vector<CommandBuffer> commandBuffers;
     std::vector<vk::raii::Semaphore> presentCompleteSemaphores;
     std::vector<vk::raii::Semaphore> renderFinishedSemaphores;

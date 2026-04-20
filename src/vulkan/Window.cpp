@@ -1,6 +1,6 @@
 #include "Window.hpp"
 
-int64_t glfwCount;
+int64_t glfwCount = 0;
 
 
 Window::Window(InstanceSettings* settings)
