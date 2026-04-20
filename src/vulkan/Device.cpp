@@ -87,11 +87,14 @@ std::optional<int> Device::isDeviceSuitable( vk::raii::PhysicalDevice const & ph
     uint32_t score = 0;
 
     // Discrete GPUs have a significant performance advantage
-    if (deviceProperties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu) {
+    if (deviceProperties.deviceType == vk::PhysicalDeviceType::eCpu) {
+        return 0; // worst possible alternative
+    }else if (deviceProperties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu) {
         score += 1000*1000;
     }else if (deviceProperties.deviceType == vk::PhysicalDeviceType::eIntegratedGpu) {
         score += 1000;
     }
+
 
     // Maximum possible size of textures affects graphics quality
     score += deviceProperties.limits.maxImageDimension2D;
