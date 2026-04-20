@@ -70,7 +70,9 @@ void game() {
     auto recordCommandBuffer = [&](uint32_t imageIndex)
     {
         float aspectRatio = static_cast<float>(swapchain.swapChainExtent.width) / static_cast<float>(swapchain.swapChainExtent.height);
-        ubo.updateUniformBuffer(frameIndex,aspectRatio);
+
+        bool zoom = glfwGetKey(window.window,GLFW_KEY_C) == GLFW_PRESS;
+        ubo.updateUniformBuffer(frameIndex,aspectRatio, zoom);
         commandBuffers[frameIndex].begin(swapchain,imageIndex);
         auto& commandBuffer = commandBuffers[frameIndex].commandBuffer;
         {
@@ -157,9 +159,19 @@ void game() {
         frameIndex = (frameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
     };
 
+    //FPS counter
+    auto lastSecond = std::chrono::steady_clock::now();
+    size_t frames = 0;
     while(window.update()){
         glfwPollEvents();
         drawFrame();   
+        auto now = std::chrono::steady_clock::now();
+        if(std::chrono::duration_cast<std::chrono::milliseconds>(now-lastSecond).count()>=1000){
+            std::cout << "[FPS]" << frames << std::endl;
+            frames = 0;
+            lastSecond = now;
+        }
+        frames++;
     }
     device.device.waitIdle();
 }
