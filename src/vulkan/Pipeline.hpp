@@ -2,6 +2,7 @@
 #include <fstream>
 #include "Swapchain.hpp"
 #include "VertexBuffer.hpp"
+#include "UBO.hpp"
 
 static std::vector<char> readFile(const std::string& filename) {
     std::ifstream file(filename, std::ios::ate | std::ios::binary);
@@ -19,8 +20,8 @@ static std::vector<char> readFile(const std::string& filename) {
 
 class Pipeline
 {
+    public:
     vk::raii::PipelineLayout pipelineLayout = nullptr;
-public:
     vk::raii::Pipeline graphicsPipeline = nullptr;
 
     [[nodiscard]] vk::raii::ShaderModule createShaderModule(Device& device,const std::vector<char>& code) const{
@@ -28,7 +29,7 @@ public:
         vk::raii::ShaderModule shaderModule{ device.device, createInfo };
         return shaderModule;
     }   
-    void create(Device& device,Swapchain& swapChain) {
+    void create(Device& device,Swapchain& swapChain,UBO& ubo) {
         // shader
         vk::raii::ShaderModule shaderModule = createShaderModule(device,readFile("bin/slang.spv"));
         vk::PipelineShaderStageCreateInfo vertShaderStageInfo{ .stage = vk::ShaderStageFlagBits::eVertex, .module = shaderModule,  .pName = "vertMain" };
@@ -61,7 +62,7 @@ public:
             .rasterizerDiscardEnable = vk::False,
             .polygonMode             = vk::PolygonMode::eFill,
             .cullMode                = vk::CullModeFlagBits::eBack,
-            .frontFace               = vk::FrontFace::eClockwise,
+            .frontFace               = vk::FrontFace::eCounterClockwise,
             .depthBiasEnable         = vk::False,
             .lineWidth               = 1.0f
         };
@@ -84,8 +85,10 @@ public:
             .logicOpEnable = vk::False, .logicOp = vk::LogicOp::eCopy, .attachmentCount = 1, .pAttachments = &colorBlendAttachment};
         
         // PipelineLayout (for uniforms later)
-        vk::PipelineLayoutCreateInfo pipelineLayoutInfo{.setLayoutCount = 0, .pushConstantRangeCount = 0};
-        pipelineLayout = vk::raii::PipelineLayout(device.device, pipelineLayoutInfo);
+        {
+            vk::PipelineLayoutCreateInfo pipelineLayoutInfo{ .setLayoutCount = 1, .pSetLayouts = &*ubo.descriptorSetLayout, .pushConstantRangeCount = 0 };
+            pipelineLayout = vk::raii::PipelineLayout(device.device, pipelineLayoutInfo);
+        }
         
         // dynamic rendering
         vk::PipelineRenderingCreateInfo pipelineRenderingCreateInfo{ .colorAttachmentCount = 1, .pColorAttachmentFormats = &swapChain.swapChainSurfaceFormat.format };

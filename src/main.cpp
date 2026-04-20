@@ -17,12 +17,14 @@ const std::vector<Vertex> vertices = {
 const std::vector<uint16_t> indices = {
     0, 1, 2, 2, 3, 0
 };
-
 void game() {
     GameFolder gf;
 
     Instance instance;
     
+
+    constexpr int MAX_FRAMES_IN_FLIGHT = 2;
+
     InstanceSettings instanceSettings;
     Window window(&instanceSettings);
 
@@ -35,15 +37,18 @@ void game() {
     Swapchain swapchain(deviceSettings);
     device.create(instance,deviceSettings,{&queue});
     swapchain.create(window,device);
+    UBO ubo;
+    ubo.create(device,MAX_FRAMES_IN_FLIGHT);
+    ubo.createDescriptorPool(device,MAX_FRAMES_IN_FLIGHT);
+    ubo.createDescriptorSets(device,MAX_FRAMES_IN_FLIGHT);
     Pipeline pipeline;
-    pipeline.create(device,swapchain);
+    pipeline.create(device,swapchain,ubo);
     CommandPool commandPool(device,queue);
     Buffer vertexBuffer,indexBuffer;
     vertexBuffer.createVertexBuffer(device,commandPool,vertices);
     indexBuffer.createIndexBuffer(device,commandPool,indices);
     
     uint32_t frameIndex = 0;
-    constexpr int MAX_FRAMES_IN_FLIGHT = 2;
     
     std::vector<CommandBuffer> commandBuffers;
     std::vector<vk::raii::Semaphore> presentCompleteSemaphores;
@@ -64,6 +69,8 @@ void game() {
     // TODO refactor the following in the future:
     auto recordCommandBuffer = [&](uint32_t imageIndex)
     {
+        float aspectRatio = static_cast<float>(swapchain.swapChainExtent.width) / static_cast<float>(swapchain.swapChainExtent.height);
+        ubo.updateUniformBuffer(frameIndex,aspectRatio);
         commandBuffers[frameIndex].begin(swapchain,imageIndex);
         auto& commandBuffer = commandBuffers[frameIndex].commandBuffer;
         {
@@ -74,6 +81,8 @@ void game() {
             
             commandBuffer.bindVertexBuffers(0, *vertexBuffer.buffer, {0});
             commandBuffer.bindIndexBuffer(*indexBuffer.buffer, 0, vk::IndexType::eUint16);
+            //TODO: learn more about dynamic descriptors
+            commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline.pipelineLayout, 0, *ubo.descriptorSets[frameIndex], nullptr);
             commandBuffer.drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0,0);
         }
         commandBuffers[frameIndex].end(swapchain,imageIndex);
