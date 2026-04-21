@@ -12,7 +12,12 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-const std::vector<Vertex> vertices = {
+#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
+std::vector<Vertex> vertices = {
     {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
     {{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
     {{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
@@ -24,11 +29,33 @@ const std::vector<Vertex> vertices = {
     {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
 };
 
-const std::vector<uint16_t> indices = {
+std::vector<uint16_t> indices = {
     0, 1, 2, 2, 3, 0,
     4, 5, 6, 6, 7, 4
 };
+#include "client/MeshWeaver.hpp"
 void game() {
+    time_t t;
+    time(&t);
+    srand(t);
+
+    MeshWeaver mw;
+    char* data = new char[33*33*33];
+    for (size_t x = 0; x < 33; x++){
+        for (size_t y = 0; y < 33; y++){
+            for (size_t z = 0; z < 33; z++){
+                int value = rand()%2;
+                if(x==0||y==0||z==0||x==32||y==32||z==32)
+                    value = 0;
+                data[x*33*33+y*33+z] = value;
+            }
+        }
+    }
+    
+    mw.create(data);
+    vertices = *(std::vector<Vertex>*)&mw.vertices; // me being a bad boy. Because i am lazy.
+    indices = mw.index;
+
     GameFolder gf;
 
     Instance instance;
@@ -129,13 +156,18 @@ void game() {
         swapchain.recreate(window,device);
         dephBuffer.create(commandPool,swapchain);
     };
+
+    glm::vec3 cameraPos = glm::vec3(1.0f, 5.0f, 5.0f);
+    glm::vec3 cameraForward = glm::vec3(0.0f, -1.0f, -1.0f);
+    glm::vec3 cameraRight;
+    
     // TODO refactor the following in the future:
     auto recordCommandBuffer = [&](uint32_t imageIndex)
     {
         float aspectRatio = static_cast<float>(swapchain.swapChainExtent.width) / static_cast<float>(swapchain.swapChainExtent.height);
 
         bool zoom = glfwGetKey(window.window,GLFW_KEY_C) != GLFW_PRESS;
-        ubo.updateUniformBuffer(frameIndex,aspectRatio, zoom);
+        ubo.updateUniformBuffer(frameIndex,aspectRatio, zoom,cameraPos,cameraForward);
         commandBuffers[frameIndex].begin(swapchain,imageIndex,dephBuffer);
         auto& commandBuffer = commandBuffers[frameIndex].commandBuffer;
         {
@@ -225,6 +257,8 @@ void game() {
     //FPS counter
     auto lastSecond = std::chrono::steady_clock::now();
     size_t frames = 0;
+    glfwSetInputMode(window.window,GLFW_CURSOR,GLFW_CURSOR_DISABLED);
+    auto lastFrame = std::chrono::high_resolution_clock::now();
     while(window.update()){
         glfwPollEvents();
         drawFrame();   
@@ -235,6 +269,53 @@ void game() {
             lastSecond = now;
         }
         frames++;
+
+        float delta;
+        {
+            auto currentTime = std::chrono::high_resolution_clock::now();
+            delta = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - lastFrame).count();
+            lastFrame = currentTime;
+        }
+        //camera rotation
+        {
+            double xpos, ypos;
+            glfwGetCursorPos(window.window, &xpos, &ypos);
+            //glfwSetCursorPos(window.window,0,0);
+            std::cout << xpos << " "<< ypos << std::endl;
+            float sensitivity = 0.05;
+            
+            auto rotation = glm::mat4(1.f);
+            rotation = glm::rotate(rotation, glm::radians(-(float)xpos*sensitivity) , glm::vec3(0.0f, 1.0f, 0.0f));
+            rotation = glm::rotate(rotation, glm::radians(-(float)ypos*sensitivity) , glm::vec3(1.0f, 0.0f, 0.0f));
+            cameraForward = rotation*glm::vec4(0.0f, 0, -1.0f,1.0f);
+            cameraRight   = rotation*glm::vec4(1.0f, 0, 0.0f,1.0f);
+        }
+        //camera position
+        float speed = 2.f;
+        if(glfwGetKey(window.window,GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS){
+            speed = 5.f;
+        }
+        {
+            if(glfwGetKey(window.window,GLFW_KEY_W) == GLFW_PRESS){
+                cameraPos += cameraForward*delta*speed;
+            }
+            if(glfwGetKey(window.window,GLFW_KEY_S) == GLFW_PRESS){
+                cameraPos -= cameraForward*delta*speed;
+            }
+            if(glfwGetKey(window.window,GLFW_KEY_D) == GLFW_PRESS){
+                cameraPos += cameraRight*delta*speed;
+            }
+            if(glfwGetKey(window.window,GLFW_KEY_A) == GLFW_PRESS){
+                cameraPos -= cameraRight*delta*speed;
+            }
+        }
+        if(glfwGetKey(window.window,GLFW_KEY_SPACE) == GLFW_PRESS){
+            cameraPos += glm::vec3(0.f,1.f,0.f)*delta*speed;
+        }
+        if(glfwGetKey(window.window,GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS){
+            cameraPos -= glm::vec3(0.f,1.f,0.f)*delta*speed;
+        }
+
     }
     device.device.waitIdle();
 }
