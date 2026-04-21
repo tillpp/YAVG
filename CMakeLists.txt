@@ -52,6 +52,7 @@ link_directories(${CMAKE_SOURCE_DIR}/libs/lib)
 
 # Add executable target with source files listed in SOURCE_FILES variable
 add_executable (YAVOG ${SOURCE_FILES})
+target_include_directories(YAVOG PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(YAVOG glfw)
 target_link_libraries(YAVOG vulkan)
 target_link_libraries(YAVOG glm)

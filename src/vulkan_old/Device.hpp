@@ -8,12 +8,12 @@
 #include <atomic>
 #include <map>
 #include <optional>
-#include "Instance.hpp"
-#include "Queue.hpp"
+#include "vulkan/Instance.hpp"
 
 
 struct DeviceSettings{
     std::vector<const char*> extensions;
+    std::vector<class Queue*> queues;
 };
 
 class Device
@@ -22,7 +22,7 @@ public:
     vk::raii::PhysicalDevice physicalDevice = nullptr;
     vk::raii::Device device = nullptr;
 
-    void create(Instance& instance,DeviceSettings settings,std::vector<Queue*> queues);
+    void create(Instance& instance,DeviceSettings settings);
 private:
     std::optional<int> isDeviceSuitable( vk::raii::PhysicalDevice const & physicalDevice ,DeviceSettings settings);
     vk::raii::PhysicalDevice pickPhysicalDevice(Instance& instance,const DeviceSettings& settings);

@@ -2,7 +2,7 @@
 #include "Device.hpp"
 #include "Swapchain.hpp"
 #include "CommandPool.hpp"
-
+#include "vulkan/Queue.hpp"
 
 
 class CommandBuffer
@@ -19,8 +19,8 @@ public:
         commandBuffer.end();
 
         vk::SubmitInfo submitInfo{ .commandBufferCount = 1, .pCommandBuffers = &*commandBuffer };
-        pool.queue.queue.submit(submitInfo, nullptr);
-        pool.queue.queue.waitIdle(); //TODO: use fence  instead to copy multiple buffers at once.
+        pool.queue.submit(submitInfo, nullptr);
+        pool.queue.waitIdle(); //TODO: use fence  instead to copy multiple buffers at once.
     }
 
     //TODO: begin, end and transition_image_layout need a better place to live.

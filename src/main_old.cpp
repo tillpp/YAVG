@@ -1,12 +1,13 @@
 
 
-#include "GameFolder.hpp"
+#include "client/GameFolder.hpp"
 #include "vulkan/Window.hpp"
-#include "vulkan/Instance.hpp"
 #include "vulkan/ValidationLayer.hpp"
-#include "vulkan/Device.hpp"
-#include "vulkan/Pipeline.hpp"
-#include "vulkan/CommandBuffer.hpp"
+#include "vulkan/GraphicsQueue.hpp"
+#include "vulkan_old/Device.hpp"
+#include "vulkan_old/Pipeline.hpp"
+#include "vulkan_old/CommandBuffer.hpp"
+#include "client/Game.hpp"
 #include <array>
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -17,34 +18,22 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-std::vector<Vertex> vertices = {
-    {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-    {{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-    {{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-    {{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
-
-    {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-    {{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-    {{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-    {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
-};
-
-std::vector<uint16_t> indices = {
-    0, 1, 2, 2, 3, 0,
-    4, 5, 6, 6, 7, 4
-};
 #include "client/MeshWeaver.hpp"
-void game() {
-    time_t t;
-    time(&t);
-    srand(t);
 
+
+void game(Game& _game) {
+    
     MeshWeaver mw;
     char* data = new char[33*33*33];
+
+    
+
     for (size_t x = 0; x < 33; x++){
         for (size_t y = 0; y < 33; y++){
             for (size_t z = 0; z < 33; z++){
-                int value = rand()%2;
+                int value = 15>y;
+                if(y==15)
+                    value = x%2;
                 if(x==0||y==0||z==0||x==32||y==32||z==32)
                     value = 0;
                 data[x*33*33+y*33+z] = value;
@@ -53,30 +42,21 @@ void game() {
     }
     
     mw.create(data);
-    vertices = *(std::vector<Vertex>*)&mw.vertices; // me being a bad boy. Because i am lazy.
-    indices = mw.index;
+    std::vector<Vertex> vertices = *(std::vector<Vertex>*)&mw.vertices; // me being a bad boy. Because i am lazy.
+    std::vector<uint16_t> indices = mw.index;
 
     GameFolder gf;
 
-    Instance instance;
     
-
+    
     constexpr int MAX_FRAMES_IN_FLIGHT = 2;
-
-    InstanceSettings instanceSettings;
-    Window window(&instanceSettings);
-
-    ValidationLayer validationLayer(&instanceSettings);
-    instance.create(instanceSettings);
-    window.create(instance);
-    Device device;
-    GraphicsQueue queue(window);
-    DeviceSettings deviceSettings;
-    Swapchain swapchain(deviceSettings);
-    device.create(instance,deviceSettings,{&queue});
-    swapchain.create(window,device);
+    
+    
+    Swapchain swapchain(_game.deviceSettings);
+    _game.device.create(_game.instance,_game.deviceSettings);
+    swapchain.create(_game.window,_game.device);
     UBO ubo;
-    ubo.create(device,MAX_FRAMES_IN_FLIGHT);
+    ubo.create(_game.device,MAX_FRAMES_IN_FLIGHT);
     vk::raii::DescriptorSetLayout descriptorSetLayout = nullptr;
     {
         std::array bindings = {
@@ -85,7 +65,7 @@ void game() {
         };
 
         vk::DescriptorSetLayoutCreateInfo layoutInfo{.bindingCount = bindings.size(), .pBindings = bindings.data()};
-        descriptorSetLayout = vk::raii::DescriptorSetLayout(device.device, layoutInfo);
+        descriptorSetLayout = vk::raii::DescriptorSetLayout(_game.device.device, layoutInfo);
 
     }
     vk::raii::DescriptorPool descriptorPool = nullptr;
@@ -100,17 +80,17 @@ void game() {
             .poolSizeCount = poolSize.size(),
             .pPoolSizes = poolSize.data()
         };
-        descriptorPool = vk::raii::DescriptorPool(device.device, poolInfo);
+        descriptorPool = vk::raii::DescriptorPool(_game.device.device, poolInfo);
     }
-    CommandPool commandPool(device,queue);
+    CommandPool commandPool(_game.device,_game.queue);
     DepthBuffer dephBuffer;
     dephBuffer.create(commandPool,swapchain);
     
     Pipeline pipeline;
-    pipeline.create(device,swapchain, descriptorSetLayout,dephBuffer);
+    pipeline.create(_game.device,swapchain, descriptorSetLayout,dephBuffer);
     Buffer vertexBuffer,indexBuffer;
-    vertexBuffer.createVertexBuffer(device,commandPool,vertices);
-    indexBuffer.createIndexBuffer(device,commandPool,indices);
+    vertexBuffer.createVertexBuffer(_game.device,commandPool,vertices);
+    indexBuffer.createIndexBuffer(_game.device,commandPool,indices);
     Image image;
     image.create(commandPool);
 
@@ -120,7 +100,7 @@ void game() {
         vk::DescriptorSetAllocateInfo allocInfo{ .descriptorPool = descriptorPool, .descriptorSetCount = static_cast<uint32_t>(layouts.size()), .pSetLayouts = layouts.data() };
 
         descriptorSets.clear();
-        descriptorSets = device.device.allocateDescriptorSets(allocInfo);
+        descriptorSets = _game.device.device.allocateDescriptorSets(allocInfo);
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
             vk::DescriptorBufferInfo bufferInfo{ .buffer = ubo.uniformBuffers[i].buffer, .offset = 0, .range = sizeof(UniformBufferObject) };
@@ -132,7 +112,7 @@ void game() {
                 vk::WriteDescriptorSet{ .dstSet = descriptorSets[i], .dstBinding = 1, .dstArrayElement = 0, .descriptorCount = 1,
                     .descriptorType = vk::DescriptorType::eCombinedImageSampler, .pImageInfo = &imageInfo }
             };
-            device.device.updateDescriptorSets(descriptorWrites, {});
+            _game.device.device.updateDescriptorSets(descriptorWrites, {});
         }
     }
 
@@ -146,14 +126,14 @@ void game() {
     
     auto recreateSwapChain = [&](){
         int width = 0, height = 0;
-        glfwGetFramebufferSize(window.window, &width, &height);
+        glfwGetFramebufferSize(_game.window, &width, &height);
         while (width == 0 || height == 0) {
-            glfwGetFramebufferSize(window.window, &width, &height);
+            glfwGetFramebufferSize(_game.window, &width, &height);
             glfwWaitEvents();
         }
-        device.device.waitIdle();
+        _game.device.device.waitIdle();
 
-        swapchain.recreate(window,device);
+        swapchain.recreate(_game.window,_game.device);
         dephBuffer.create(commandPool,swapchain);
     };
 
@@ -166,7 +146,7 @@ void game() {
     {
         float aspectRatio = static_cast<float>(swapchain.swapChainExtent.width) / static_cast<float>(swapchain.swapChainExtent.height);
 
-        bool zoom = glfwGetKey(window.window,GLFW_KEY_C) != GLFW_PRESS;
+        bool zoom = glfwGetKey(_game.window,GLFW_KEY_C) == GLFW_PRESS;
         ubo.updateUniformBuffer(frameIndex,aspectRatio, zoom,cameraPos,cameraForward);
         commandBuffers[frameIndex].begin(swapchain,imageIndex,dephBuffer);
         auto& commandBuffer = commandBuffers[frameIndex].commandBuffer;
@@ -191,18 +171,18 @@ void game() {
     assert(presentCompleteSemaphores.empty() && renderFinishedSemaphores.empty() && inFlightFences.empty());
     for (size_t i = 0; i < swapchain.swapChainImages.size(); i++)
 	{
-		renderFinishedSemaphores.emplace_back(device.device, vk::SemaphoreCreateInfo());
+		renderFinishedSemaphores.emplace_back(_game.device.device, vk::SemaphoreCreateInfo());
 	}
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        presentCompleteSemaphores.emplace_back(device.device, vk::SemaphoreCreateInfo());
-        inFlightFences.emplace_back(device.device, vk::FenceCreateInfo{.flags = vk::FenceCreateFlagBits::eSignaled});
+        presentCompleteSemaphores.emplace_back(_game.device.device, vk::SemaphoreCreateInfo());
+        inFlightFences.emplace_back(_game.device.device, vk::FenceCreateInfo{.flags = vk::FenceCreateFlagBits::eSignaled});
         commandBuffers.emplace_back(commandPool);
     }
     
     
     auto drawFrame = [&](){
-        auto fenceResult = device.device.waitForFences(*inFlightFences[frameIndex], vk::True, UINT64_MAX);
+        auto fenceResult = _game.device.device.waitForFences(*inFlightFences[frameIndex], vk::True, UINT64_MAX);
 		if (fenceResult != vk::Result::eSuccess)
 		{
 			throw std::runtime_error("failed to wait for fence!");
@@ -218,7 +198,7 @@ void game() {
             throw std::runtime_error("failed to acquire swap chain image!");
         }
         
-        device.device.resetFences(*inFlightFences[frameIndex]);
+        _game.device.device.resetFences(*inFlightFences[frameIndex]);
 		commandBuffers[frameIndex].commandBuffer.reset();
         recordCommandBuffer(imageIndex);
         vk::PipelineStageFlags waitDestinationStageMask( vk::PipelineStageFlagBits::eColorAttachmentOutput );
@@ -231,7 +211,7 @@ void game() {
             .signalSemaphoreCount = 1,
             .pSignalSemaphores    = &*renderFinishedSemaphores[imageIndex]
         };
-        queue.queue.submit(submitInfo, *inFlightFences[frameIndex]);
+        (_game.queue).submit(submitInfo, *inFlightFences[frameIndex]);
 
 
         const vk::PresentInfoKHR presentInfoKHR{
@@ -240,8 +220,8 @@ void game() {
             .swapchainCount     = 1,
             .pSwapchains        = &*swapchain.swapChain,
             .pImageIndices      = &imageIndex};
-        result = queue.queue.presentKHR(presentInfoKHR);
-        if ((result == vk::Result::eSuboptimalKHR) || (result == vk::Result::eErrorOutOfDateKHR) || window.framebufferResized)
+        result = _game.queue.presentKHR(presentInfoKHR);
+        if ((result == vk::Result::eSuboptimalKHR) || (result == vk::Result::eErrorOutOfDateKHR) || _game.window.framebufferResized)
         {
             recreateSwapChain();
         }
@@ -257,9 +237,9 @@ void game() {
     //FPS counter
     auto lastSecond = std::chrono::steady_clock::now();
     size_t frames = 0;
-    glfwSetInputMode(window.window,GLFW_CURSOR,GLFW_CURSOR_DISABLED);
+    glfwSetInputMode(_game.window,GLFW_CURSOR,GLFW_CURSOR_DISABLED);
     auto lastFrame = std::chrono::high_resolution_clock::now();
-    while(window.update()){
+    while(_game.window.update()){
         glfwPollEvents();
         drawFrame();   
         auto now = std::chrono::steady_clock::now();
@@ -279,7 +259,7 @@ void game() {
         //camera rotation
         {
             double xpos, ypos;
-            glfwGetCursorPos(window.window, &xpos, &ypos);
+            glfwGetCursorPos(_game.window, &xpos, &ypos);
             //glfwSetCursorPos(window.window,0,0);
             float sensitivity = 0.05;
             
@@ -290,39 +270,43 @@ void game() {
             cameraRight   = rotation*glm::vec4(1.0f, 0, 0.0f,1.0f);
         }
         //camera position
-        float speed = 2.f;
-        if(glfwGetKey(window.window,GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS){
-            speed = 5.f;
+        float speed = 4.f;
+        if(glfwGetKey(_game.window,GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS){
+            speed = 20.f;
         }
         {
-            if(glfwGetKey(window.window,GLFW_KEY_W) == GLFW_PRESS){
+            if(glfwGetKey(_game.window,GLFW_KEY_W) == GLFW_PRESS){
                 cameraPos += cameraForward*delta*speed;
             }
-            if(glfwGetKey(window.window,GLFW_KEY_S) == GLFW_PRESS){
+            if(glfwGetKey(_game.window,GLFW_KEY_S) == GLFW_PRESS){
                 cameraPos -= cameraForward*delta*speed;
             }
-            if(glfwGetKey(window.window,GLFW_KEY_D) == GLFW_PRESS){
+            if(glfwGetKey(_game.window,GLFW_KEY_D) == GLFW_PRESS){
                 cameraPos += cameraRight*delta*speed;
             }
-            if(glfwGetKey(window.window,GLFW_KEY_A) == GLFW_PRESS){
+            if(glfwGetKey(_game.window,GLFW_KEY_A) == GLFW_PRESS){
                 cameraPos -= cameraRight*delta*speed;
             }
         }
-        if(glfwGetKey(window.window,GLFW_KEY_SPACE) == GLFW_PRESS){
+        if(glfwGetKey(_game.window,GLFW_KEY_SPACE) == GLFW_PRESS){
             cameraPos += glm::vec3(0.f,1.f,0.f)*delta*speed;
         }
-        if(glfwGetKey(window.window,GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS){
+        if(glfwGetKey(_game.window,GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS){
             cameraPos -= glm::vec3(0.f,1.f,0.f)*delta*speed;
         }
 
     }
-    device.device.waitIdle();
+    _game.device.device.waitIdle();
 }
 
-int main(int argc, char const *argv[])
-{
+int main(int argc, char const *argv[]){
+    time_t t;
+    time(&t);
+    srand(t);
+
     try{
-        game();
+        Game _game;
+        game(_game);
     } catch (const vk::SystemError& err){
         std::cerr << "Vulkan error: " << err.what() << std::endl;
         return 1;

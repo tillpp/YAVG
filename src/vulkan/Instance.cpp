@@ -1,14 +1,10 @@
 #include "Instance.hpp"
 
-Instance::Instance(/* args */)
-{
+Instance::operator vk::raii::Instance&(){
+    return instance;
 }
 
-Instance::~Instance()
-{
-}
-
- void Instance::create(InstanceSettings settings){
+void Instance::create(InstanceSettings settings){
     constexpr vk::ApplicationInfo appInfo{
         .pApplicationName   = "Yet Another Voxel Game",
         .applicationVersion = VK_MAKE_VERSION( 1, 0, 0 ),
@@ -49,5 +45,4 @@ Instance::~Instance()
     }
 
     instance = vk::raii::Instance(context, createInfo);
-
 }

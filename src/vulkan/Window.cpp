@@ -21,8 +21,8 @@ Window::Window(InstanceSettings* settings)
     for (uint32_t i = 0; i < glfwExtensionCount; ++i)
     {
         if (std::ranges::none_of(extensionProperties,
-                                [glfwExtension = glfwExtensions[i]](auto const& extensionProperty)
-                                { return strcmp(extensionProperty.extensionName, glfwExtension) == 0; }))
+            [glfwExtension = glfwExtensions[i]](auto const& extensionProperty)
+            { return strcmp(extensionProperty.extensionName, glfwExtension) == 0; }))
         {
             throw std::runtime_error("Required GLFW extension not supported: " + std::string(glfwExtensions[i]));
         }
@@ -37,41 +37,31 @@ Window::~Window()
         glfwTerminate();
     }
 }
-void Window::create(Instance& instance){
+Window::operator GLFWwindow*(){
+    return window;
+}
+void Window::create(Instance& instance,int width, int height, const char *title){
     // window 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    window = glfwCreateWindow(640, 720, "YAVoG", nullptr, nullptr);
+    window = glfwCreateWindow(width,height,title, nullptr, nullptr);
     glfwSetWindowUserPointer(window,(void*)this);
     
     // surface
     VkSurfaceKHR       _surface;
-    if (glfwCreateWindowSurface(*instance.instance, window, nullptr, &_surface) != 0) {
+    if (glfwCreateWindowSurface(*(vk::raii::Instance&)instance, window, nullptr, &_surface) != 0) {
         throw std::runtime_error("failed to create window surface!");
     }
-    surface = vk::raii::SurfaceKHR(instance.instance, _surface);
+    surface = vk::raii::SurfaceKHR(instance, _surface);
 
     // callback 
     glfwSetFramebufferSizeCallback(window,[](GLFWwindow* window, int , int height){
         auto self = (Window*)glfwGetWindowUserPointer(window);
         self->framebufferResized = true;
     });
-    glfwSetCursorPosCallback(window,[](GLFWwindow* window,double xpos, double ypos){
-        auto self = (Window*)glfwGetWindowUserPointer(window);
-        self->onCursorPos( xpos,ypos);
-    });
     glfwSetKeyCallback(window,[](GLFWwindow* window, int key, int scancode, int action, int mods){
+        auto self = (Window*)glfwGetWindowUserPointer(window);
         if(key == GLFW_KEY_F11 && action == GLFW_PRESS){
-            auto self = (Window*)glfwGetWindowUserPointer(window);
-            int count;
-            auto monitors =  glfwGetMonitors(&count);
-            auto monitor = monitors[count-1];
-            const GLFWvidmode * mode = glfwGetVideoMode(monitor);
-            if(glfwGetWindowMonitor(self->window) == nullptr){
-                glfwGetWindowPos(self->window,&self->xpos,&self->ypos);
-                glfwSetWindowMonitor(self->window,monitor,0,0,mode->width,mode->height,0);
-            }else{
-                glfwSetWindowMonitor(self->window,nullptr,self->xpos,self->ypos,640,720,0);
-            }
+            self->toggleFullscreen();
         }
     });
 
@@ -86,5 +76,16 @@ bool Window::update(){
     framebufferResized = false;
     return !glfwWindowShouldClose(window);
 }
-void Window::onCursorPos(double xpos, double ypos){
+bool Window::toggleFullscreen(){
+    int count;
+    auto monitors =  glfwGetMonitors(&count);
+    auto monitor = monitors[count-1];
+    const GLFWvidmode * mode = glfwGetVideoMode(monitor);
+    if(glfwGetWindowMonitor(window) == nullptr){
+        glfwGetWindowPos(window,&beforeFullscreen.xpos,&beforeFullscreen.xpos);
+        glfwGetWindowSize(window,&beforeFullscreen.sizex,&beforeFullscreen.sizey);
+        glfwSetWindowMonitor(window,monitor,0,0,mode->width,mode->height,0);
+    }else{
+        glfwSetWindowMonitor(window,nullptr,beforeFullscreen.xpos,beforeFullscreen.ypos,beforeFullscreen.sizex,beforeFullscreen.sizey,0);
+    }
 }

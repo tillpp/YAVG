@@ -1,4 +1,5 @@
 #pragma once
+#include "vulkan/Window.hpp"
 #include "Device.hpp"
 #include <limits>
 
@@ -38,7 +39,7 @@ public:
             return capabilities.currentExtent;
         }
         int width, height;
-        glfwGetFramebufferSize(window.window, &width, &height);
+        glfwGetFramebufferSize(window, &width, &height);
 
         return {
             std::clamp<uint32_t>(width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width),

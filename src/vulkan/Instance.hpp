@@ -1,11 +1,5 @@
 #pragma once
-#define VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
-#include <vulkan/vulkan_raii.hpp>
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-#include <iostream>
-#include <vector>
-#include <atomic>
+#include "Header.hpp"
 
 struct InstanceSettings{
     std::vector<const char*> extensions;
@@ -16,12 +10,9 @@ struct InstanceSettings{
 class Instance
 {
     vk::raii::Context  context;
-public:
     vk::raii::Instance instance = nullptr;
-    
-
-    Instance(/* args */);
-    ~Instance();
+public:
+    operator vk::raii::Instance&();
 
     void create(InstanceSettings extensions);
 

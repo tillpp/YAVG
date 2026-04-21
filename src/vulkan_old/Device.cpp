@@ -1,7 +1,8 @@
 #include "Device.hpp"
+#include "vulkan/Queue.hpp"
 
 
-void Device::create(Instance& instance,DeviceSettings settings,std::vector<Queue*> queues){
+void Device::create(Instance& instance,DeviceSettings settings){
     physicalDevice = pickPhysicalDevice(instance,settings);
     
     // LOGICLA DEVICE:
@@ -12,7 +13,7 @@ void Device::create(Instance& instance,DeviceSettings settings,std::vector<Queue
     std::map<unsigned int,std::vector<QueueInfo>>  queueMap;
     {
         std::vector<vk::QueueFamilyProperties> queueFamilyProperties = physicalDevice.getQueueFamilyProperties();
-        for (auto &&queue : queues){
+        for (auto &&queue : settings.queues){
             uint32_t queueIndex = ~0;
             for (uint32_t qfpIndex = 0; qfpIndex < queueFamilyProperties.size(); qfpIndex++)
             {
@@ -76,7 +77,7 @@ void Device::create(Instance& instance,DeviceSettings settings,std::vector<Queue
         
         for (size_t i = 0; i < pair.second.size(); i++)
         {
-            pair.second[i].queue->queue = vk::raii::Queue( device, familyIndex, i );
+            (vk::raii::Queue&)(*pair.second[i].queue) = vk::raii::Queue( device, familyIndex, i );
         }
         
     }
@@ -140,7 +141,7 @@ std::optional<int> Device::isDeviceSuitable( vk::raii::PhysicalDevice const & ph
     return {};
 }
 vk::raii::PhysicalDevice Device::pickPhysicalDevice(Instance& instance,const DeviceSettings& settings){
-     auto physicalDevices = vk::raii::PhysicalDevices( instance.instance );
+     auto physicalDevices = vk::raii::PhysicalDevices( instance );
     if (physicalDevices.empty())
     {
         throw std::runtime_error( "failed to find GPUs with Vulkan support!" );
