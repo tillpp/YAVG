@@ -25,33 +25,23 @@ void game(Game& _game) {
     
     MeshWeaver mw;
     char* data = new char[33*33*33];
-
-    
-
     for (size_t x = 0; x < 33; x++){
         for (size_t y = 0; y < 33; y++){
             for (size_t z = 0; z < 33; z++){
-                int value = 15>y;
-                if(y==15)
-                    value = x%2;
+                int value = rand()%2;
                 if(x==0||y==0||z==0||x==32||y==32||z==32)
                     value = 0;
                 data[x*33*33+y*33+z] = value;
             }
         }
     }
-    
     mw.create(data);
     std::vector<Vertex> vertices = *(std::vector<Vertex>*)&mw.vertices; // me being a bad boy. Because i am lazy.
     std::vector<uint16_t> indices = mw.index;
 
     GameFolder gf;
 
-    
-    
     constexpr int MAX_FRAMES_IN_FLIGHT = 2;
-    
-    
     Swapchain swapchain(_game.deviceSettings);
     _game.device.create(_game.instance,_game.deviceSettings);
     swapchain.create(_game.window,_game.device);
