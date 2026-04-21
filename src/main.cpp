@@ -1,4 +1,5 @@
 
+
 #include "GameFolder.hpp"
 #include "vulkan/Window.hpp"
 #include "vulkan/Instance.hpp"
@@ -6,17 +7,26 @@
 #include "vulkan/Device.hpp"
 #include "vulkan/Pipeline.hpp"
 #include "vulkan/CommandBuffer.hpp"
-#include "vulkan/Image.hpp"
 #include <array>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
 const std::vector<Vertex> vertices = {
-    {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-    {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-    {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-    {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
+    {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+    {{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
+    {{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+    {{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
+
+    {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+    {{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
+    {{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+    {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
 };
+
 const std::vector<uint16_t> indices = {
-    0, 1, 2, 2, 3, 0
+    0, 1, 2, 2, 3, 0,
+    4, 5, 6, 6, 7, 4
 };
 void game() {
     GameFolder gf;
@@ -65,15 +75,18 @@ void game() {
         };
         descriptorPool = vk::raii::DescriptorPool(device.device, poolInfo);
     }
+    CommandPool commandPool(device,queue);
+    DepthBuffer dephBuffer;
+    dephBuffer.create(commandPool,swapchain);
     
     Pipeline pipeline;
-    pipeline.create(device,swapchain, descriptorSetLayout);
-    CommandPool commandPool(device,queue);
+    pipeline.create(device,swapchain, descriptorSetLayout,dephBuffer);
     Buffer vertexBuffer,indexBuffer;
     vertexBuffer.createVertexBuffer(device,commandPool,vertices);
     indexBuffer.createIndexBuffer(device,commandPool,indices);
     Image image;
     image.create(commandPool);
+
     std::vector<vk::raii::DescriptorSet> descriptorSets;
     {
         std::vector<vk::DescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, *descriptorSetLayout);
@@ -114,6 +127,7 @@ void game() {
         device.device.waitIdle();
 
         swapchain.recreate(window,device);
+        dephBuffer.create(commandPool,swapchain);
     };
     // TODO refactor the following in the future:
     auto recordCommandBuffer = [&](uint32_t imageIndex)
@@ -122,7 +136,7 @@ void game() {
 
         bool zoom = glfwGetKey(window.window,GLFW_KEY_C) != GLFW_PRESS;
         ubo.updateUniformBuffer(frameIndex,aspectRatio, zoom);
-        commandBuffers[frameIndex].begin(swapchain,imageIndex);
+        commandBuffers[frameIndex].begin(swapchain,imageIndex,dephBuffer);
         auto& commandBuffer = commandBuffers[frameIndex].commandBuffer;
         {
 

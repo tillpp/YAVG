@@ -24,16 +24,16 @@ public:
     }
 
     //TODO: begin, end and transition_image_layout need a better place to live.
-    void begin(Swapchain& swapchain,uint32_t imageIndex);
+    void begin(Swapchain& swapchain,uint32_t imageIndex,class DepthBuffer& depthBuffer);
     void end(Swapchain& swapchain,uint32_t imageIndex);
 private: //helper
     void transition_image_layout(
-        Swapchain& swapchain,
-	    uint32_t                imageIndex,
+        const vk::Image& image,
 	    vk::ImageLayout         old_layout,
 	    vk::ImageLayout         new_layout,
 	    vk::AccessFlags2        src_access_mask,
 	    vk::AccessFlags2        dst_access_mask,
 	    vk::PipelineStageFlags2 src_stage_mask,
-	    vk::PipelineStageFlags2 dst_stage_mask);
+	    vk::PipelineStageFlags2 dst_stage_mask,
+        vk::ImageAspectFlags    image_aspect_flags);
 };

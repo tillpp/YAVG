@@ -2,6 +2,7 @@
 #include <fstream>
 #include "Swapchain.hpp"
 #include "VertexBuffer.hpp"
+#include "DepthBuffer.hpp"
 #include "UBO.hpp"
 
 static std::vector<char> readFile(const std::string& filename) {
@@ -29,7 +30,7 @@ class Pipeline
         vk::raii::ShaderModule shaderModule{ device.device, createInfo };
         return shaderModule;
     }   
-    void create(Device& device,Swapchain& swapChain,vk::raii::DescriptorSetLayout& descriptorSetLayout) {
+    void create(Device& device,Swapchain& swapChain,vk::raii::DescriptorSetLayout& descriptorSetLayout,DepthBuffer& depthBuffer) {
         // shader
         vk::raii::ShaderModule shaderModule = createShaderModule(device,readFile("bin/slang.spv"));
         vk::PipelineShaderStageCreateInfo vertShaderStageInfo{ .stage = vk::ShaderStageFlagBits::eVertex, .module = shaderModule,  .pName = "vertMain" };
@@ -90,8 +91,20 @@ class Pipeline
             pipelineLayout = vk::raii::PipelineLayout(device.device, pipelineLayoutInfo);
         }
         
+
+        //enable depthtesting
+        vk::PipelineDepthStencilStateCreateInfo depthStencil{
+            .depthTestEnable       = vk::True,
+            .depthWriteEnable      = vk::True,
+            .depthCompareOp        = vk::CompareOp::eLess,
+            .depthBoundsTestEnable = vk::False,
+            .stencilTestEnable     = vk::False
+        };
         // dynamic rendering
-        vk::PipelineRenderingCreateInfo pipelineRenderingCreateInfo{ .colorAttachmentCount = 1, .pColorAttachmentFormats = &swapChain.swapChainSurfaceFormat.format };
+        vk::PipelineRenderingCreateInfo pipelineRenderingCreateInfo{ 
+            .colorAttachmentCount = 1, 
+            .pColorAttachmentFormats = &swapChain.swapChainSurfaceFormat.format, 
+            .depthAttachmentFormat = depthBuffer.depthFormat};
         
         // everything together
         vk::GraphicsPipelineCreateInfo  graphicsPipelineCreateInfo{
@@ -102,6 +115,7 @@ class Pipeline
             .pViewportState      = &viewportState,
             .pRasterizationState = &rasterizer,
             .pMultisampleState   = &multisampling,
+            .pDepthStencilState  = &depthStencil,
             .pColorBlendState    = &colorBlending,
             .pDynamicState       = &dynamicState,
             .layout              = pipelineLayout,

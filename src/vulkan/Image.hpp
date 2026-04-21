@@ -1,5 +1,4 @@
 #pragma once
-#define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 #include "Device.hpp"
 #include "VertexBuffer.hpp"
@@ -9,10 +8,10 @@
 //TODO: try to reread https://docs.vulkan.org/tutorial/latest/06_Texture_mapping/00_Images.html#_layout_transitions , cause i didnt understand everything.
 class Image
 {
-    vk::raii::Image image = nullptr;
     vk::raii::DeviceMemory imageMemory = nullptr;
-
+    
 public:
+    vk::raii::Image image = nullptr;
     vk::raii::ImageView imageView = nullptr;
     vk::raii::Sampler textureSampler = nullptr;
     void create(CommandPool& pool){
@@ -115,12 +114,12 @@ public:
     }
 
     void createTextureImageView(Device& device) {
-        imageView = createImageView(device, vk::Format::eR8G8B8A8Srgb);
+        imageView = createImageView(device, vk::Format::eR8G8B8A8Srgb,vk::ImageAspectFlagBits::eColor);
 
     }
-    vk::raii::ImageView createImageView(Device& device, vk::Format format) {
+    vk::raii::ImageView createImageView(Device& device, vk::Format format, vk::ImageAspectFlags aspectFlags) {
         vk::ImageViewCreateInfo viewInfo{ .image = image, .viewType = vk::ImageViewType::e2D,
-            .format = format, .subresourceRange = { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 } };
+            .format = format, .subresourceRange = { aspectFlags, 0, 1, 0, 1 } };
         return vk::raii::ImageView( device.device, viewInfo );
     }
 
