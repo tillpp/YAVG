@@ -11,6 +11,7 @@
 class Window
 {
 public:
+    int xpos,ypos;
     GLFWwindow *window = nullptr;
     vk::raii::SurfaceKHR surface = nullptr;
 

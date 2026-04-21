@@ -59,6 +59,21 @@ void Window::create(Instance& instance){
         auto self = (Window*)glfwGetWindowUserPointer(window);
         self->onCursorPos( xpos,ypos);
     });
+    glfwSetKeyCallback(window,[](GLFWwindow* window, int key, int scancode, int action, int mods){
+        if(key == GLFW_KEY_F11 && action == GLFW_PRESS){
+            auto self = (Window*)glfwGetWindowUserPointer(window);
+            int count;
+            auto monitors =  glfwGetMonitors(&count);
+            auto monitor = monitors[count-1];
+            const GLFWvidmode * mode = glfwGetVideoMode(monitor);
+            if(glfwGetWindowMonitor(self->window) == nullptr){
+                glfwGetWindowPos(self->window,&self->xpos,&self->ypos);
+                glfwSetWindowMonitor(self->window,monitor,0,0,mode->width,mode->height,0);
+            }else{
+                glfwSetWindowMonitor(self->window,nullptr,self->xpos,self->ypos,640,720,0);
+            }
+        }
+    });
 
 }
 void Window::close(){
