@@ -265,17 +265,19 @@ void game(Game& _game) {
             speed = 20.f;
         }
         {
+            auto forward = glm::normalize(glm::vec3(cameraForward.x,0,cameraForward.z));
+            auto right   = glm::normalize(glm::vec3(cameraRight.x  ,0,cameraRight.z  ));
             if(glfwGetKey(_game.window,GLFW_KEY_W) == GLFW_PRESS){
-                cameraPos += cameraForward*delta*speed;
+                cameraPos += forward*delta*speed;
             }
             if(glfwGetKey(_game.window,GLFW_KEY_S) == GLFW_PRESS){
-                cameraPos -= cameraForward*delta*speed;
+                cameraPos -= forward*delta*speed;
             }
             if(glfwGetKey(_game.window,GLFW_KEY_D) == GLFW_PRESS){
-                cameraPos += cameraRight*delta*speed;
+                cameraPos += right*delta*speed;
             }
             if(glfwGetKey(_game.window,GLFW_KEY_A) == GLFW_PRESS){
-                cameraPos -= cameraRight*delta*speed;
+                cameraPos -= right*delta*speed;
             }
         }
         if(glfwGetKey(_game.window,GLFW_KEY_SPACE) == GLFW_PRESS){
