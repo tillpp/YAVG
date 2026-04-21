@@ -281,7 +281,6 @@ void game() {
             double xpos, ypos;
             glfwGetCursorPos(window.window, &xpos, &ypos);
             //glfwSetCursorPos(window.window,0,0);
-            std::cout << xpos << " "<< ypos << std::endl;
             float sensitivity = 0.05;
             
             auto rotation = glm::mat4(1.f);
