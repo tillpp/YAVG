@@ -1,6 +1,6 @@
 #pragma once
 #include <fstream>
-#include "Swapchain.hpp"
+#include "vulkan/Swapchain.hpp"
 #include "VertexBuffer.hpp"
 #include "DepthBuffer.hpp"
 #include "UBO.hpp"
@@ -103,7 +103,7 @@ class Pipeline
         // dynamic rendering
         vk::PipelineRenderingCreateInfo pipelineRenderingCreateInfo{ 
             .colorAttachmentCount = 1, 
-            .pColorAttachmentFormats = &swapChain.swapChainSurfaceFormat.format, 
+            .pColorAttachmentFormats = &swapChain.surfaceFormat.format, 
             .depthAttachmentFormat = depthBuffer.depthFormat};
         
         // everything together

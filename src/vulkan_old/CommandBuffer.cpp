@@ -11,7 +11,7 @@ void CommandBuffer::begin(Swapchain& swapchain,uint32_t imageIndex,DepthBuffer& 
     commandBuffer.begin({});
     // Before starting rendering, transition the swapchain image to vk::ImageLayout::eColorAttachmentOptimal
     transition_image_layout(
-        swapchain.swapChainImages[imageIndex],
+        swapchain.images[imageIndex],
         vk::ImageLayout::eUndefined,
         vk::ImageLayout::eColorAttachmentOptimal,
         {},                                                        // srcAccessMask (no need to wait for previous operations)
@@ -42,7 +42,7 @@ void CommandBuffer::begin(Swapchain& swapchain,uint32_t imageIndex,DepthBuffer& 
         .storeOp     = vk::AttachmentStoreOp::eDontCare,
         .clearValue  = clearDepth};
     vk::RenderingAttachmentInfo attachmentInfo = {
-        .imageView   = swapchain.swapChainImageViews[imageIndex],
+        .imageView   = swapchain.imageViews[imageIndex],
         .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
         .loadOp      = vk::AttachmentLoadOp::eClear,
         .storeOp     = vk::AttachmentStoreOp::eStore,
@@ -62,7 +62,7 @@ void CommandBuffer::end(Swapchain& swapchain,uint32_t imageIndex){
 
     // After rendering, transition the swapchain image to vk::ImageLayout::ePresentSrcKHR
     transition_image_layout(
-        swapchain.swapChainImages[imageIndex],
+        swapchain.images[imageIndex],
         vk::ImageLayout::eColorAttachmentOptimal,
         vk::ImageLayout::ePresentSrcKHR,
         vk::AccessFlagBits2::eColorAttachmentWrite,             // srcAccessMask

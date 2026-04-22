@@ -132,7 +132,7 @@ void game(Game& _game) {
 
     glm::vec3 cameraPos = glm::vec3(1.0f, 5.0f, 5.0f);
     glm::vec3 cameraForward = glm::vec3(0.0f, -1.0f, -1.0f);
-    glm::vec3 cameraRight;
+    glm::vec3 cameraRight = glm::vec3(-1.0f, -1.0f, 0.0f);
     
     // TODO refactor the following in the future:
     auto recordCommandBuffer = [&](uint32_t imageIndex)
@@ -162,7 +162,7 @@ void game(Game& _game) {
     
 
     assert(presentCompleteSemaphores.empty() && renderFinishedSemaphores.empty() && inFlightFences.empty());
-    for (size_t i = 0; i < swapchain.swapChainImages.size(); i++)
+    for (size_t i = 0; i < swapchain.images.size(); i++)
 	{
 		renderFinishedSemaphores.emplace_back(_game.device.device, vk::SemaphoreCreateInfo());
 	}
@@ -230,7 +230,9 @@ void game(Game& _game) {
     //FPS counter
     auto lastSecond = std::chrono::steady_clock::now();
     size_t frames = 0;
-    glfwSetInputMode(_game.window,GLFW_CURSOR,GLFW_CURSOR_DISABLED);
+    bool grabMouse = false;
+    if(grabMouse)
+        glfwSetInputMode(_game.window,GLFW_CURSOR,GLFW_CURSOR_DISABLED);
     auto lastFrame = std::chrono::high_resolution_clock::now();
     while(_game.window.update()){
         glfwPollEvents();
@@ -250,6 +252,7 @@ void game(Game& _game) {
             lastFrame = currentTime;
         }
         //camera rotation
+        if(grabMouse)
         {
             float sensitivity = 0.05;
             double xpos, ypos;
