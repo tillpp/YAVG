@@ -7,9 +7,8 @@ namespace fs = std::filesystem;
 class GameFolder
 {
     void findDirectory();
-
-    fs::path directory;
 public:
+    fs::path directory;
     GameFolder(/* args */);
     ~GameFolder();
 };

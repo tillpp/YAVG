@@ -45,7 +45,6 @@ void game(Game& _game) {
     std::vector<Vertex> vertices = *(std::vector<Vertex>*)&mw.vertices; // me being a bad boy. Because i am lazy.
     std::vector<uint16_t> indices = mw.index;
 
-    GameFolder gf;
 
     constexpr int MAX_FRAMES_IN_FLIGHT = 2;
     Swapchain swapchain(_game.deviceSettings);

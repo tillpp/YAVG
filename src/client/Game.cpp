@@ -6,8 +6,9 @@ Game::Game():
 {
     instance.create(instanceSettings);
     window.create(instance,640, 720, "YAVoG");
-
     queue.create(window,deviceSettings);
+
+    server.create(gf.directory/"saves"/"example");
 }
 
 Game::~Game()

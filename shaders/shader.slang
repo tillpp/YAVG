@@ -49,7 +49,7 @@ float4 fragMain(VertexOutput inVert) : SV_Target
     } else if (normal.x < -invsqrt2 || normal.x > invsqrt2){
         color *= 0.6;
     } else {
-        color *= 0.5;
+        color *= 0.8;
     }
 
     return float4(color,1);

@@ -4,6 +4,8 @@
 #include "vulkan/ValidationLayer.hpp"
 #include "vulkan/GraphicsQueue.hpp"
 #include "vulkan_old/Device.hpp"
+#include "server/Server.hpp"
+#include "GameFolder.hpp"
 
 class Game
 {
@@ -16,6 +18,8 @@ public:
     Device device;
     GraphicsQueue queue;
     
+    GameFolder gf;
+    Server server;
     Game();
     ~Game();
 };
