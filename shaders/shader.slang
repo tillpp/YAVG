@@ -23,7 +23,6 @@ struct VertexOutput {
 VertexOutput vertMain(VSInput input,uint vid : SV_VertexID,uint iid :SV_InstanceID) {
     VertexOutput output;
     output.sv_position = mul(ubo.proj, mul(ubo.view, mul(ubo.model, float4(input.inPosition , 1.0))));
-    output.sv_position.x += iid-0.5;
     output.color = input.inColor;
     output.fragTexCoord = input.inTexCoord;
     output.pos = input.inPosition;

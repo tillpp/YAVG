@@ -253,10 +253,13 @@ void game(Game& _game) {
         }
         //camera rotation
         {
+            float sensitivity = 0.05;
             double xpos, ypos;
             glfwGetCursorPos(_game.window, &xpos, &ypos);
-            //glfwSetCursorPos(window.window,0,0);
-            float sensitivity = 0.05;
+            if(ypos*sensitivity > 89.0 || -89.0 >ypos*sensitivity){
+                ypos = glm::clamp(ypos*sensitivity,-89.0,89.0)/sensitivity;
+                glfwSetCursorPos(_game.window,xpos,ypos);
+            }
             
             auto rotation = glm::mat4(1.f);
             rotation = glm::rotate(rotation, glm::radians(-(float)xpos*sensitivity) , glm::vec3(0.0f, 1.0f, 0.0f));

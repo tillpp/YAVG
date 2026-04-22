@@ -79,7 +79,7 @@ bool Window::update(){
 bool Window::toggleFullscreen(){
     int count;
     auto monitors =  glfwGetMonitors(&count);
-    auto monitor = monitors[count-1];
+    auto monitor = monitors[0];
     const GLFWvidmode * mode = glfwGetVideoMode(monitor);
     if(glfwGetWindowMonitor(window) == nullptr){
         glfwGetWindowPos(window,&beforeFullscreen.xpos,&beforeFullscreen.xpos);
