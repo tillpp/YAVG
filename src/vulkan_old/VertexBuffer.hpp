@@ -1,5 +1,5 @@
 #pragma once
-#include "Device.hpp"
+#include "vulkan/Device.hpp"
 #include <glm/glm.hpp>
 #include <array>
 #include "CommandBuffer.hpp"

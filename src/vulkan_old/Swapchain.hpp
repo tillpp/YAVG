@@ -1,15 +1,15 @@
 #pragma once
 #include "vulkan/Window.hpp"
-#include "Device.hpp"
+#include "vulkan/Device.hpp"
 #include <limits>
 
 class Swapchain
 {
 public:
     vk::raii::SwapchainKHR swapChain = nullptr;
-    std::vector<vk::Image> swapChainImages;
     vk::SurfaceFormatKHR   swapChainSurfaceFormat;
     vk::Extent2D           swapChainExtent;
+    std::vector<vk::Image> swapChainImages;
     std::vector<vk::raii::ImageView> swapChainImageViews;
 
     Swapchain(DeviceSettings& deviceSettings){

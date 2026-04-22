@@ -1,6 +1,6 @@
 #pragma once
 #include <stb_image.h>
-#include "Device.hpp"
+#include "vulkan/Device.hpp"
 #include "VertexBuffer.hpp"
 #include "CommandBuffer.hpp"
 

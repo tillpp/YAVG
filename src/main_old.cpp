@@ -4,7 +4,7 @@
 #include "vulkan/Window.hpp"
 #include "vulkan/ValidationLayer.hpp"
 #include "vulkan/GraphicsQueue.hpp"
-#include "vulkan_old/Device.hpp"
+#include "vulkan/Device.hpp"
 #include "vulkan_old/Pipeline.hpp"
 #include "vulkan_old/CommandBuffer.hpp"
 #include "client/Game.hpp"
@@ -47,9 +47,7 @@ void game(Game& _game) {
 
 
     constexpr int MAX_FRAMES_IN_FLIGHT = 2;
-    Swapchain swapchain(_game.deviceSettings);
-    _game.device.create(_game.instance,_game.deviceSettings);
-    swapchain.create(_game.window,_game.device);
+    auto& swapchain = _game.swapchain;
     UBO ubo;
     ubo.create(_game.device,MAX_FRAMES_IN_FLIGHT);
     vk::raii::DescriptorSetLayout descriptorSetLayout = nullptr;

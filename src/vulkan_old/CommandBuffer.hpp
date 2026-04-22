@@ -1,5 +1,5 @@
 #pragma once
-#include "Device.hpp"
+#include "vulkan/Device.hpp"
 #include "Swapchain.hpp"
 #include "CommandPool.hpp"
 #include "vulkan/Queue.hpp"

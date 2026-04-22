@@ -1,17 +1,21 @@
 #include "Device.hpp"
 #include "vulkan/Queue.hpp"
 
-
-void Device::create(Instance& instance,DeviceSettings settings){
-    physicalDevice = pickPhysicalDevice(instance,settings);
-    
-    // LOGICLA DEVICE:
+void Device::create(Instance& instance,DeviceSettings settings,const DeviceFeatures& features){
+    physicalDevice = pickPhysicalDevice(instance,settings,features);
+    initLogicalDevice(instance,settings,features);
+}
+void Device::initLogicalDevice(Instance& instance,const DeviceSettings& settings,const DeviceFeatures& features){
+    // LOGICAL DEVICE:
     struct QueueInfo{
         Queue*  queue;
         float priority;
     };
-    std::map<unsigned int,std::vector<QueueInfo>>  queueMap;
-    {
+    // turn Queues into vk::DeviceQueueCreateInfo  
+    // queueFamilyIndex -> QueueInfo[]
+    std::vector<vk::DeviceQueueCreateInfo> deviceQueueCreateInfos;
+    std::map<unsigned int,std::vector<QueueInfo>>  queueMap; 
+    auto createQueueMap = [&](){
         std::vector<vk::QueueFamilyProperties> queueFamilyProperties = physicalDevice.getQueueFamilyProperties();
         for (auto &&queue : settings.queues){
             uint32_t queueIndex = ~0;
@@ -35,36 +39,39 @@ void Device::create(Instance& instance,DeviceSettings settings){
                 .queue = queue,
                 .priority = queuePriority,
             });
-         }
-    }
-    std::vector<vk::DeviceQueueCreateInfo> deviceQueueCreateInfos;
-    for(auto&& pair: queueMap){
-        auto familyIndex = pair.first;
-        std::vector<float> priorities;
-        {
-            priorities.reserve(pair.second.size());
-            std::ranges::transform(pair.second,std::back_inserter(priorities), &QueueInfo::priority);
         }
+        for(auto&& pair: queueMap){
+            auto familyIndex = pair.first;
+            std::vector<float> priorities;
+            {
+                priorities.reserve(pair.second.size());
+                std::ranges::transform(pair.second,std::back_inserter(priorities), &QueueInfo::priority);
+            }
+                
+            deviceQueueCreateInfos.push_back(vk::DeviceQueueCreateInfo{ 
+                .queueFamilyIndex = familyIndex,
+                .queueCount = (unsigned int)priorities.size(),
+                .pQueuePriorities = priorities.data()
+            });
+        }
+    };
+    auto useQueueMap = [&](){
+        for(auto&& pair: queueMap){
+            auto familyIndex = pair.first;
             
-        deviceQueueCreateInfos.push_back(vk::DeviceQueueCreateInfo{ 
-            .queueFamilyIndex = familyIndex,
-            .queueCount = (unsigned int)priorities.size(),
-            .pQueuePriorities = priorities.data()
-        });
-    }
+            for (size_t i = 0; i < pair.second.size(); i++)
+            {
+                (vk::raii::Queue&)(*pair.second[i].queue) = vk::raii::Queue( device, familyIndex, i );
+            }
+            
+        }
+    };
+    
 
-    // TODO: refactor features into DeviceSettings
-    // Create a chain of feature structures
-    vk::PhysicalDeviceFeatures2 a{.features = {.samplerAnisotropy = true}};// vk::PhysicalDeviceFeatures2 (empty for now)
-    vk::PhysicalDeviceVulkan13Features b{.synchronization2 = true,.dynamicRendering = true}; // Enable dynamic rendering from Vulkan 1.3
-    vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT c{.extendedDynamicState = true };  // Enable extended dynamic state from the extension
-    vk::PhysicalDeviceVulkan11Features d{.shaderDrawParameters = true};
-    a.pNext = &b;
-    b.pNext = &c;
-    c.pNext = &d;
+    createQueueMap();
 
     vk::DeviceCreateInfo deviceCreateInfo{
-        .pNext = &a,
+        .pNext = features.logicalDeviceFeatures,
         .queueCreateInfoCount = static_cast<uint32_t>(deviceQueueCreateInfos.size()),
         .pQueueCreateInfos = deviceQueueCreateInfos.data(),
         .enabledExtensionCount = static_cast<uint32_t>(settings.extensions.size()),
@@ -72,17 +79,11 @@ void Device::create(Instance& instance,DeviceSettings settings){
     }; 
     device = vk::raii::Device( physicalDevice, deviceCreateInfo );
 
-    for(auto&& pair: queueMap){
-        auto familyIndex = pair.first;
-        
-        for (size_t i = 0; i < pair.second.size(); i++)
-        {
-            (vk::raii::Queue&)(*pair.second[i].queue) = vk::raii::Queue( device, familyIndex, i );
-        }
-        
-    }
+    useQueueMap();
 }
-std::optional<int> Device::isDeviceSuitable( vk::raii::PhysicalDevice const & physicalDevice ,DeviceSettings settings){
+
+
+std::optional<int> Device::isDeviceSuitable( vk::raii::PhysicalDevice const & physicalDevice ,DeviceSettings settings,const DeviceFeatures& features){
     auto deviceProperties = physicalDevice.getProperties();
     auto deviceFeatures = physicalDevice.getFeatures();
     uint32_t score = 0;
@@ -91,9 +92,9 @@ std::optional<int> Device::isDeviceSuitable( vk::raii::PhysicalDevice const & ph
     if (deviceProperties.deviceType == vk::PhysicalDeviceType::eCpu) {
         return 0; // worst possible alternative
     }else if (deviceProperties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu) {
-        score += 1000*1000;
+        score += 1e9;
     }else if (deviceProperties.deviceType == vk::PhysicalDeviceType::eIntegratedGpu) {
-        score += 1000;
+        score += 1e3;
     }
 
 
@@ -123,24 +124,14 @@ std::optional<int> Device::isDeviceSuitable( vk::raii::PhysicalDevice const & ph
                                     { return strcmp( availableDeviceExtension.extensionName, requiredDeviceExtension ) == 0; } );
         } );
 
-    //TODO refactor this:
-    // Check if the physicalDevice supports the required features (dynamic rendering and extended dynamic state)
-    auto features =
-        physicalDevice
-        .template getFeatures2<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan13Features, vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT,vk::PhysicalDeviceVulkan11Features>();
-    bool supportsRequiredFeatures = 
-                                    features.template get<vk::PhysicalDeviceFeatures2>().features.samplerAnisotropy &&
-                                    features.template get<vk::PhysicalDeviceVulkan13Features>().synchronization2 &&
-                                    features.template get<vk::PhysicalDeviceVulkan13Features>().dynamicRendering &&
-                                    features.template get<vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>().extendedDynamicState &&
-                                    features.template get<vk::PhysicalDeviceVulkan11Features>().shaderDrawParameters;
+    bool supportsRequiredFeatures = features.physicalDeviceSuitable(physicalDevice);
 
     // Return true if the physicalDevice meets all the criteria
     if(supportsVulkan1_3 && supportsGraphics && supportsAllRequiredExtensions && supportsRequiredFeatures)
         return score;
     return {};
 }
-vk::raii::PhysicalDevice Device::pickPhysicalDevice(Instance& instance,const DeviceSettings& settings){
+vk::raii::PhysicalDevice Device::pickPhysicalDevice(Instance& instance,const DeviceSettings& settings,const DeviceFeatures& features){
      auto physicalDevices = vk::raii::PhysicalDevices( instance );
     if (physicalDevices.empty())
     {
@@ -151,7 +142,7 @@ vk::raii::PhysicalDevice Device::pickPhysicalDevice(Instance& instance,const Dev
     std::multimap<int, vk::raii::PhysicalDevice> candidates;
     for (const auto& pd : physicalDevices)
     {
-        auto score = isDeviceSuitable(pd,settings);
+        auto score = isDeviceSuitable(pd,settings, features);
         if(score.has_value())   
             candidates.insert(std::make_pair(score.value(), pd));
     }
