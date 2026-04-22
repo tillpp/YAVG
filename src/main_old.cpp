@@ -19,7 +19,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "client/MeshWeaver.hpp"
-
+#include "FastNoiseLite.h"
 
 void game(Game& _game) {
     

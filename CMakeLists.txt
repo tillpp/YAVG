@@ -37,9 +37,15 @@ FetchContent_Declare(
 FetchContent_Declare(
   stb
   GIT_REPOSITORY https://github.com/nothings/stb.git
+  GIT_TAG 31c1ad37456438565541f4919958214b6e762fb4
 )
-
-FetchContent_MakeAvailable(glfw vulkan glm stb)
+FetchContent_Declare(
+  fastnoiselite
+  GIT_REPOSITORY https://github.com/Auburn/FastNoiseLite.git
+  GIT_TAG 4a17083770411d2af8fd99b1f249ea10143dc959 # don't remove Tag. Small star library, better check code after each update for malicious code.
+  SOURCE_SUBDIR Cpp
+)
+FetchContent_MakeAvailable(glfw vulkan glm stb fastnoiselite)
 
 add_library(vulkan SHARED IMPORTED)
 set_target_properties(vulkan PROPERTIES
@@ -60,7 +66,9 @@ target_link_libraries(YAVOG glm)
 target_include_directories(YAVOG PRIVATE
     ${stb_SOURCE_DIR}
 )
-
+target_include_directories(YAVOG PRIVATE
+  ${fastnoiselite_SOURCE_DIR}/Cpp
+)
 
 # shaders
 function (add_slang_shader_target TARGET)
