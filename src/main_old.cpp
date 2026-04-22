@@ -35,7 +35,13 @@ void game(Game& _game) {
             }
         }
     }
-    mw.create(data);
+    {
+
+        auto t1 = std::chrono::high_resolution_clock::now();
+        mw.create(data);
+        auto t2 =  std::chrono::high_resolution_clock::now();
+        std::cout <<"mesh generation time:"<< std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count()<<"µs" <<std::endl;
+    }
     std::vector<Vertex> vertices = *(std::vector<Vertex>*)&mw.vertices; // me being a bad boy. Because i am lazy.
     std::vector<uint16_t> indices = mw.index;
 
