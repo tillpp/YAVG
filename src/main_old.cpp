@@ -230,7 +230,7 @@ void game(Game& _game) {
     //FPS counter
     auto lastSecond = std::chrono::steady_clock::now();
     size_t frames = 0;
-    bool grabMouse = false;
+    bool grabMouse = true;
     if(grabMouse)
         glfwSetInputMode(_game.window,GLFW_CURSOR,GLFW_CURSOR_DISABLED);
     auto lastFrame = std::chrono::high_resolution_clock::now();
