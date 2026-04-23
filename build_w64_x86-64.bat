@@ -27,6 +27,8 @@ set "CMAKE_ZIP=cmake-%CMAKE_VERSION%-windows-x86_64.zip"
 set "CMAKE_URL=https://github.com/Kitware/CMake/releases/download/v%CMAKE_VERSION%/%CMAKE_ZIP%"
 set "CMAKE_DIR=%TOOLS_DIR%\cmake-%CMAKE_VERSION%-windows-x86_64"
 
+set "CACERT=%TOOLS_DIR%\cacert.pem"
+
 :: ---- Detect available download tool -----------------------
 set "DOWNLOAD_TOOL="
 where curl >nul 2>&1 && set "DOWNLOAD_TOOL=curl"
@@ -51,7 +53,7 @@ if not exist "%TOOLS_DIR%" mkdir "%TOOLS_DIR%"
 :: Download and extract WinLibs
 :: ============================================================
 if not exist "%MINGW_DIR%\bin\gcc.exe" (
-    echo [1/4] Downloading WinLibs GCC %GCC_VERSION%
+    echo [1/7] Downloading WinLibs GCC %GCC_VERSION%
     echo       URL: %WINLIBS_URL%
     echo.
 
@@ -75,7 +77,7 @@ if not exist "%MINGW_DIR%\bin\gcc.exe" (
         exit /b 1
     )
 
-    echo [2/4] Extracting WinLibs
+    echo [2/7] Extracting WinLibs
 
     where tar >nul 2>&1
     if not errorlevel 1 (
@@ -95,15 +97,15 @@ if not exist "%MINGW_DIR%\bin\gcc.exe" (
     del /f /q "%TOOLS_DIR%\%WINLIBS_ZIP%"
     echo       Done.
 ) else (
-    echo [1/4] WinLibs GCC already present, skipping download
-    echo [2/4] Skipped (already extracted)
+    echo [1/7] WinLibs GCC already present, skipping download
+    echo [2/7] Skipped (already extracted)
 )
 
 :: ============================================================
 :: Download and extract portable CMake
 :: ============================================================
 if not exist "%CMAKE_DIR%\bin\cmake.exe" (
-    echo [3/4] Downloading CMake %CMAKE_VERSION%
+    echo [3/7] Downloading CMake %CMAKE_VERSION%
     echo       URL: %CMAKE_URL%
     echo.
 
@@ -127,7 +129,7 @@ if not exist "%CMAKE_DIR%\bin\cmake.exe" (
         exit /b 1
     )
 
-    echo [4/4] Extracting CMake...
+    echo [4/7] Extracting CMake...
     where tar >nul 2>&1
     if not errorlevel 1 (
         tar -xf "%TOOLS_DIR%\%CMAKE_ZIP%" -C "%TOOLS_DIR%"
@@ -146,8 +148,18 @@ if not exist "%CMAKE_DIR%\bin\cmake.exe" (
     del "%TOOLS_DIR%\%CMAKE_ZIP%"
     echo       Done
 ) else (
-    echo [3/4] CMake already present, skipping download
-    echo [4/4] Skipped (already extracted)
+    echo [3/7] CMake already present, skipping download
+    echo [4/7] Skipped (already extracted)
+)
+
+:: ============================================================
+:: Download CA bundle 
+:: ============================================================
+if not exist "%CACERT%" (
+    echo [5/7] Downloading CA cert bundle
+    curl -L --progress-bar -o "%CACERT%" https://curl.se/ca/cacert.pem
+) else (
+    echo [5/7] CA cert bundle already present, skipping download
 )
 
 :: ============================================================
@@ -165,8 +177,13 @@ echo.
 :: ============================================================
 :: Configure with CMake using MinGW Makefiles generator
 :: ============================================================
-echo Configuring project with CMake
+echo [6/7] Configuring project with CMake
 if not exist "%BUILD_DIR%" mkdir "%BUILD_DIR%"
+
+:: Tell CMake's curl to use our CA cert
+set "CMAKE_SSL_CERT_FILE=%CACERT%"
+set "CURL_CA_BUNDLE=%CACERT%"
+set "SSL_CERT_FILE=%CACERT%"
 
 cmake -S "%SCRIPT_DIR%" ^
       -B "%BUILD_DIR%" ^
@@ -187,7 +204,7 @@ if errorlevel 1 (
 :: Build
 :: ============================================================
 echo.
-echo Building project...
+echo [7/7] Building project
 cmake --build "%BUILD_DIR%" --config Release -- -j%NUMBER_OF_PROCESSORS%
 
 if errorlevel 1 (
