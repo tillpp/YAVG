@@ -1,7 +1,7 @@
 #pragma once
 #include "vulkan/Device.hpp"
 #include "vulkan/Swapchain.hpp"
-#include "CommandPool.hpp"
+#include "vulkan/CommandPool.hpp"
 #include "vulkan/Queue.hpp"
 
 
@@ -19,8 +19,8 @@ public:
         commandBuffer.end();
 
         vk::SubmitInfo submitInfo{ .commandBufferCount = 1, .pCommandBuffers = &*commandBuffer };
-        pool.queue.submit(submitInfo, nullptr);
-        pool.queue.waitIdle(); //TODO: use fence  instead to copy multiple buffers at once.
+        pool.getQueue().submit(submitInfo, nullptr);
+        pool.getQueue().waitIdle(); //TODO: use fence  instead to copy multiple buffers at once.
     }
 
     //TODO: begin, end and transition_image_layout need a better place to live.

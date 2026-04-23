@@ -26,7 +26,7 @@ public:
 
         // load into stating Buffer
         Buffer stagingBuffer;
-        stagingBuffer.createBuffer(pool.device,imageSize,vk::BufferUsageFlagBits::eTransferSrc,vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+        stagingBuffer.createBuffer(pool.getDevice(),imageSize,vk::BufferUsageFlagBits::eTransferSrc,vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 
         void* data = stagingBuffer.bufferMemory.mapMemory(0, imageSize);
         memcpy(data, pixels, imageSize);
@@ -40,8 +40,8 @@ public:
         copyBufferToImage(pool,stagingBuffer.buffer, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
         transitionImageLayout(pool, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
 
-        createTextureImageView(pool.device);
-        createTextureSampler(  pool.device);
+        createTextureImageView(pool.getDevice());
+        createTextureSampler(  pool.getDevice());
     }
     void createImage(CommandPool& pool,uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties) {
         vk::ImageCreateInfo imageInfo{ .imageType = vk::ImageType::e2D, .format = format,
@@ -49,12 +49,12 @@ public:
             .samples = vk::SampleCountFlagBits::e1, .tiling = tiling,
             .usage = usage, .sharingMode = vk::SharingMode::eExclusive };
 
-        image = vk::raii::Image(pool.device.device, imageInfo);
+        image = vk::raii::Image(pool.getDevice().device, imageInfo);
 
         vk::MemoryRequirements memRequirements = image.getMemoryRequirements();
         vk::MemoryAllocateInfo allocInfo{ .allocationSize = memRequirements.size,
-                                            .memoryTypeIndex = Buffer::findMemoryType(pool.device,memRequirements.memoryTypeBits, properties) };
-        imageMemory = vk::raii::DeviceMemory(pool.device.device, allocInfo);
+                                            .memoryTypeIndex = Buffer::findMemoryType(pool.getDevice(),memRequirements.memoryTypeBits, properties) };
+        imageMemory = vk::raii::DeviceMemory(pool.getDevice().device, allocInfo);
         image.bindMemory(*imageMemory, 0);
 
         CommandBuffer commandBuffer(pool); 

@@ -40,6 +40,8 @@ Game::Game():
 
     device.create(instance,deviceSettings, features);
     swapchain.create(window,device);
+    commandPool.create(device,queue);
+
 
 }
 

@@ -35,8 +35,8 @@ class DepthBuffer
     Image image;
     vk::Format depthFormat;
     void create(CommandPool& pool,Swapchain& swapchain){
-        depthFormat = findDepthFormat(pool.device);
+        depthFormat = findDepthFormat(pool.getDevice());
         image.createImage(pool,swapchain.swapChainExtent.width, swapchain.swapChainExtent.height, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal);
-        image.imageView = image.createImageView(pool.device, depthFormat, vk::ImageAspectFlagBits::eDepth);
+        image.imageView = image.createImageView(pool.getDevice(), depthFormat, vk::ImageAspectFlagBits::eDepth);
     }
 };

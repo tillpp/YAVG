@@ -5,7 +5,7 @@
 CommandBuffer::CommandBuffer(CommandPool& pool){
 vk::CommandBufferAllocateInfo allocInfo{ .commandPool = *pool.commandPool, .level = vk::CommandBufferLevel::ePrimary, .commandBufferCount = 1 };
 
-commandBuffer = std::move(vk::raii::CommandBuffers(pool.device.device, allocInfo).front());
+commandBuffer = std::move(vk::raii::CommandBuffers(pool.getDevice().device, allocInfo).front());
 }
 void CommandBuffer::begin(Swapchain& swapchain,uint32_t imageIndex,DepthBuffer& depthBuffer){
     commandBuffer.begin({});

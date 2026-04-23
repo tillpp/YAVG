@@ -22,22 +22,27 @@
 #include "FastNoiseLite.h"
 
 void game(Game& _game) {
+    time_t t;
+    time(&t);
+    FastNoiseLite noise(t);
+    noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+    noise.SetFrequency(0.03);
     
+    auto t1 = std::chrono::high_resolution_clock::now();
     MeshWeaver mw;
-    char* data = new char[33*33*33];
-    for (size_t x = 0; x < 33; x++){
-        for (size_t y = 0; y < 33; y++){
-            for (size_t z = 0; z < 33; z++){
-                int value = rand()%2;
-                if(x==0||y==0||z==0||x==32||y==32||z==32)
-                    value = 0;
-                data[x*33*33+y*33+z] = value;
+    {
+        char* data = new char[33*33*33];
+        for (size_t x = 0; x < 33; x++){
+            for (size_t y = 0; y < 33; y++){
+                for (size_t z = 0; z < 33; z++){
+                    int value = noise.GetNoise((float)x, (float)y,(float) z)>0;
+                    if(x==0||y==0||z==0||x==32||y==32||z==32)
+                        value = 0;
+                    data[x*33*33+y*33+z] = value;
+                }
             }
         }
-    }
-    {
 
-        auto t1 = std::chrono::high_resolution_clock::now();
         mw.create(data);
         auto t2 =  std::chrono::high_resolution_clock::now();
         std::cout <<"mesh generation time:"<< std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count()<<"µs" <<std::endl;
@@ -57,7 +62,10 @@ void game(Game& _game) {
             vk::DescriptorSetLayoutBinding( 1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment, nullptr)
         };
 
-        vk::DescriptorSetLayoutCreateInfo layoutInfo{.bindingCount = bindings.size(), .pBindings = bindings.data()};
+        vk::DescriptorSetLayoutCreateInfo layoutInfo{
+            .bindingCount = bindings.size(), 
+            .pBindings = bindings.data()
+        };
         descriptorSetLayout = vk::raii::DescriptorSetLayout(_game.device.device, layoutInfo);
 
     }
@@ -75,17 +83,20 @@ void game(Game& _game) {
         };
         descriptorPool = vk::raii::DescriptorPool(_game.device.device, poolInfo);
     }
-    CommandPool commandPool(_game.device,_game.queue);
+    
     DepthBuffer dephBuffer;
-    dephBuffer.create(commandPool,swapchain);
+    dephBuffer.create(_game.commandPool,swapchain);
     
     Pipeline pipeline;
-    pipeline.create(_game.device,swapchain, descriptorSetLayout,dephBuffer);
+    pipeline.create(_game.device,
+        "bin/slang.spv",
+        "vertMain","fragMain",
+        swapchain, descriptorSetLayout,dephBuffer);
     Buffer vertexBuffer,indexBuffer;
-    vertexBuffer.createVertexBuffer(_game.device,commandPool,vertices);
-    indexBuffer.createIndexBuffer(_game.device,commandPool,indices);
+    vertexBuffer.createVertexBuffer(_game.device,_game.commandPool,vertices);
+    indexBuffer.createIndexBuffer(_game.device,_game.commandPool,indices);
     Image image;
-    image.create(commandPool);
+    image.create(_game.commandPool);
 
     std::vector<vk::raii::DescriptorSet> descriptorSets;
     {
@@ -127,7 +138,7 @@ void game(Game& _game) {
         _game.device.device.waitIdle();
 
         swapchain.recreate(_game.window,_game.device);
-        dephBuffer.create(commandPool,swapchain);
+        dephBuffer.create(_game.commandPool,swapchain);
     };
 
     glm::vec3 cameraPos = glm::vec3(1.0f, 5.0f, 5.0f);
@@ -170,7 +181,7 @@ void game(Game& _game) {
     {
         presentCompleteSemaphores.emplace_back(_game.device.device, vk::SemaphoreCreateInfo());
         inFlightFences.emplace_back(_game.device.device, vk::FenceCreateInfo{.flags = vk::FenceCreateFlagBits::eSignaled});
-        commandBuffers.emplace_back(commandPool);
+        commandBuffers.emplace_back(_game.commandPool);
     }
     
     
