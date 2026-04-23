@@ -12,8 +12,8 @@ set CMAKE_VER=3.30.5
 set LLVM_URL=https://github.com/llvm/llvm-project/releases/download/llvmorg-%LLVM_VER%/clang+llvm-%LLVM_VER%-x86_64-pc-windows-msvc.tar.xz
 set CMAKE_URL=https://github.com/Kitware/CMake/releases/download/v%CMAKE_VER%/cmake-%CMAKE_VER%-windows-x86_64.tar.xz
 
-set LLVM_ZIP=%ROOT%\llvm.zip
-set CMAKE_ZIP=%ROOT%\cmake.zip
+set LLVM_ZIP=%ROOT%\llvm.tar.xz
+set CMAKE_ZIP=%ROOT%\cmake.tar.xz
 
 REM FODLER CREATION
 echo Creating %ROOT%
