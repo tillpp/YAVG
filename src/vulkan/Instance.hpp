@@ -4,7 +4,7 @@
 struct InstanceSettings{
     std::vector<const char*> extensions;
     std::vector<const char*> layers;
-    vk::InstanceCreateFlags flags;
+    vk::InstanceCreateFlags flags{};
 };
 //TODO: vulkan give objects name
 class Instance

@@ -31,23 +31,23 @@ struct Chunk{
     std::vector<uint16_t> indices;
 
     void create(Device& device,CommandPool& pool,FastNoiseLite& noise,size_t xOffset,size_t yOffset,size_t zOffset){
-         auto t1 = std::chrono::high_resolution_clock::now();
         MeshWeaver mw;
         {
+            auto t1 = std::chrono::high_resolution_clock::now();
             char* data = new char[33*33*33];
             for (size_t x = 0; x < 33; x++){
                 for (size_t y = 0; y < 33; y++){
                     for (size_t z = 0; z < 33; z++){
                         int value = (noise.GetNoise((float)x+xOffset, (float)z+zOffset)*32+32)>(float) y+yOffset;
                         // if(x==0||y==0||z==0||x==32||y==32||z==32)
-                            // value = 0;
+                        // value = 0;
                         data[x*33*33+y*33+z] = value;
                     }
                 }
             }
-
-            mw.create(data,xOffset,yOffset,zOffset);
+            
             auto t2 =  std::chrono::high_resolution_clock::now();
+            mw.create(data,xOffset,yOffset,zOffset);
             std::cout <<"mesh generation time:"<< std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count()<<"µs" <<std::endl;
         }
         vertices = *(std::vector<Vertex>*)&mw.vertices; // me being a bad boy. Because i am lazy.
