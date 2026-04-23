@@ -7,7 +7,7 @@ if(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
       add_compile_options(-m64 -Wa,-mbig-obj)
 endif()
 
-if(WIN32)
+if(MSVC)
   add_compile_options( -static -lpthread)
 endif()
 
