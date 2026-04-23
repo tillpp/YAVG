@@ -271,7 +271,7 @@ void game(Game& _game) {
             .pSwapchains        = &*swapchain.swapChain,
             .pImageIndices      = &imageIndex};
         result = _game.queue.presentKHR(presentInfoKHR);
-        if ((result == vk::Result::eSuboptimalKHR) || (result == vk::Result::eErrorOutOfDateKHR) || _game.window.framebufferResized)
+        if ((result == vk::Result::eSuboptimalKHR) || (result == vk::Result::eErrorOutOfDateKHR))
         {
             recreateSwapChain();
         }
