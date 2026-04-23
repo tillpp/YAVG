@@ -68,6 +68,7 @@ struct Chunk{
     }
 };
 void game(Game& _game) {
+
     time_t t;
     time(&t);
     FastNoiseLite noise(t);
@@ -245,10 +246,8 @@ void game(Game& _game) {
     //FPS counter
     auto lastSecond = std::chrono::steady_clock::now();
     size_t frames = 0;
-    bool grabMouse = true;
-    if(grabMouse)
-        glfwSetInputMode(_game.window,GLFW_CURSOR,GLFW_CURSOR_DISABLED);
     auto lastFrame = std::chrono::high_resolution_clock::now();
+
     while(_game.window.update()){
         glfwPollEvents();
         drawFrame();   
@@ -267,7 +266,7 @@ void game(Game& _game) {
             lastFrame = currentTime;
         }
         //camera 
-        if(grabMouse)
+        if(_game.window.grabMouse)
         {
             camera.update(_game.window,delta);   
         }

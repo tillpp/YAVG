@@ -62,9 +62,13 @@ void Window::create(Instance& instance,int width, int height, const char *title)
         auto self = (Window*)glfwGetWindowUserPointer(window);
         if(key == GLFW_KEY_F11 && action == GLFW_PRESS){
             self->toggleFullscreen();
+        }else if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS){
+            self->toggleMouseGrab();
         }
-    });
 
+
+    });
+    toggleMouseGrab();
 }
 void Window::close(){
     glfwDestroyWindow(window);
@@ -89,4 +93,11 @@ void Window::toggleFullscreen(){
     }else{
         glfwSetWindowMonitor(window,nullptr,beforeFullscreen.xpos,beforeFullscreen.ypos,beforeFullscreen.sizex,beforeFullscreen.sizey,0);
     }
+}
+void Window::toggleMouseGrab(){
+    grabMouse =! grabMouse;
+    if(grabMouse)  
+        glfwSetInputMode(window,GLFW_CURSOR,GLFW_CURSOR_DISABLED);
+    else    
+        glfwSetInputMode(window,GLFW_CURSOR,GLFW_CURSOR_NORMAL);
 }
