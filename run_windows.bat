@@ -21,8 +21,8 @@ if not exist "%ROOT%" mkdir "%ROOT%"
 
 REM DOWNLOAD CLANG
 echo Downloading Clang and Cmake ....%LLVM_URL% into %LLVM_ZIP%
-powershell -Command $ProgressPreference = 'SilentlyContinue'; "Invoke-WebRequest -uri '%LLVM_URL%' -OutFile '%LLVM_ZIP%'"
-powershell -Command $ProgressPreference = 'SilentlyContinue'; "Invoke-WebRequest -uri '%CMAKE_URL%' -OutFile '%CMAKE_ZIP%'"
+powershell -Command "Invoke-WebRequest -uri '%LLVM_URL%' -OutFile '%LLVM_ZIP%'"
+powershell -Command "Invoke-WebRequest -uri '%CMAKE_URL%' -OutFile '%CMAKE_ZIP%'"
 echo Extracting zip file...
 C:\Windows\System32\tar.exe -xf %LLVM_ZIP% --directory %ROOT%\llvm
 C:\Windows\System32\tar.exe -xf %CMAKE_ZIP% --directory %ROOT%\cmake
