@@ -29,7 +29,7 @@ public:
     std::vector<Vertex> vertices;
     std::vector<uint16_t> index;
 
-    void create(char chunk[(chunkSize+1)*(chunkSize+1)*(chunkSize+1)]){
+    void create(char chunk[(chunkSize+1)*(chunkSize+1)*(chunkSize+1)],size_t xOffset,size_t yOffset,size_t zOffset){
         auto getBlock = [&](int x,int y,int z)->int
         {
             int index = x*(chunkSize+1)*(chunkSize+1)+y*(chunkSize+1)+z;
@@ -49,7 +49,7 @@ public:
                 vertexIndex[index] = vertices.size();
                 float scale = 1.0/32;
                 vertices.push_back(Vertex{
-                    .pos = glm::vec3(x,y,z),
+                    .pos = glm::vec3(x+xOffset,y+yOffset,z+zOffset),
                     .color = scale*glm::vec3(x,y,z),
                     .texCoord = glm::vec2(1,1)
                 });

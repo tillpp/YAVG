@@ -62,7 +62,8 @@ public:
     }
 public:
     //create vertexBuffer
-    void createVertexBuffer(Device& device,CommandPool& commandPool,const std::vector<Vertex> vertices){
+    void createVertexBuffer(CommandPool& commandPool,const std::vector<Vertex> vertices){
+        Device& device = commandPool.getDevice();
         //create StagingBuffer
         Buffer stagingBuffer;
         {
@@ -86,7 +87,8 @@ public:
 
     //TODO: a lot of duplicate code with VertexBuffer create
     // create IndexBuffer
-    void createIndexBuffer(Device& device,CommandPool& commandPool,const std::vector<uint16_t> indices){
+    void createIndexBuffer(CommandPool& commandPool,const std::vector<uint16_t> indices){
+        Device& device = commandPool.getDevice();
         //create StagingBuffer
         Buffer stagingBuffer;
         {

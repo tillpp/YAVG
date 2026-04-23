@@ -21,34 +21,61 @@
 #include "client/MeshWeaver.hpp"
 #include "FastNoiseLite.h"
 
+
+struct Chunk{
+    Buffer vertexBuffer,indexBuffer;
+    std::vector<Vertex> vertices;
+    std::vector<uint16_t> indices;
+
+    void create(Device& device,CommandPool& pool,FastNoiseLite& noise,size_t xOffset,size_t yOffset,size_t zOffset){
+         auto t1 = std::chrono::high_resolution_clock::now();
+        MeshWeaver mw;
+        {
+            char* data = new char[33*33*33];
+            for (size_t x = 0; x < 33; x++){
+                for (size_t y = 0; y < 33; y++){
+                    for (size_t z = 0; z < 33; z++){
+                        int value = (noise.GetNoise((float)x+xOffset, (float)z+zOffset)*48+48)>(float) y+yOffset;
+                        // if(x==0||y==0||z==0||x==32||y==32||z==32)
+                            // value = 0;
+                        data[x*33*33+y*33+z] = value;
+                    }
+                }
+            }
+
+            mw.create(data,xOffset,yOffset,zOffset);
+            auto t2 =  std::chrono::high_resolution_clock::now();
+            std::cout <<"mesh generation time:"<< std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count()<<"µs" <<std::endl;
+        }
+        vertices = *(std::vector<Vertex>*)&mw.vertices; // me being a bad boy. Because i am lazy.
+        indices = mw.index;
+
+        if(indices.size()){
+            vertexBuffer.createVertexBuffer(pool,vertices);
+            indexBuffer.createIndexBuffer(pool,indices);
+        }
+    }
+    void draw(CommandBuffer& buffer){
+        if(indices.size()){
+            auto& commandBuffer = buffer.commandBuffer;
+            commandBuffer.bindVertexBuffers(0, *vertexBuffer.buffer, {0});
+            commandBuffer.bindIndexBuffer(*indexBuffer.buffer, 0, vk::IndexType::eUint16);
+            commandBuffer.drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0,0);
+        }
+    }
+};
 void game(Game& _game) {
     time_t t;
     time(&t);
     FastNoiseLite noise(t);
     noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
-    noise.SetFrequency(0.03);
+    noise.SetFractalType(FastNoiseLite::FractalType_FBm);
+    noise.SetFrequency(0.01);
+    //noise.SetFractalGain(0.75);
+    noise.SetFractalOctaves(5);
+    //noise.SetFractalLacunarity(2);
     
-    auto t1 = std::chrono::high_resolution_clock::now();
-    MeshWeaver mw;
-    {
-        char* data = new char[33*33*33];
-        for (size_t x = 0; x < 33; x++){
-            for (size_t y = 0; y < 33; y++){
-                for (size_t z = 0; z < 33; z++){
-                    int value = noise.GetNoise((float)x, (float)y,(float) z)>0;
-                    if(x==0||y==0||z==0||x==32||y==32||z==32)
-                        value = 0;
-                    data[x*33*33+y*33+z] = value;
-                }
-            }
-        }
-
-        mw.create(data);
-        auto t2 =  std::chrono::high_resolution_clock::now();
-        std::cout <<"mesh generation time:"<< std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count()<<"µs" <<std::endl;
-    }
-    std::vector<Vertex> vertices = *(std::vector<Vertex>*)&mw.vertices; // me being a bad boy. Because i am lazy.
-    std::vector<uint16_t> indices = mw.index;
+   
 
 
     constexpr int MAX_FRAMES_IN_FLIGHT = 2;
@@ -92,9 +119,20 @@ void game(Game& _game) {
         "bin/slang.spv",
         "vertMain","fragMain",
         swapchain, descriptorSetLayout,dephBuffer);
-    Buffer vertexBuffer,indexBuffer;
-    vertexBuffer.createVertexBuffer(_game.device,_game.commandPool,vertices);
-    indexBuffer.createIndexBuffer(_game.device,_game.commandPool,indices);
+    
+    Chunk chunk[3][3][3];
+    for (size_t x = 0; x < 3; x++)
+    {
+        for (size_t y = 0; y < 3; y++)
+        {
+            for (size_t z = 0; z < 3; z++)
+            {
+                chunk[x][y][z].create(_game.device,_game.commandPool,noise,x*32,y*32,z*32);
+            }
+        }
+        
+    }
+    
     Image image;
     image.create(_game.commandPool);
 
@@ -160,11 +198,19 @@ void game(Game& _game) {
             commandBuffer.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapchain.swapChainExtent.width), static_cast<float>(swapchain.swapChainExtent.height), 0.0f, 1.0f));
             commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapchain.swapChainExtent));
             
-            commandBuffer.bindVertexBuffers(0, *vertexBuffer.buffer, {0});
-            commandBuffer.bindIndexBuffer(*indexBuffer.buffer, 0, vk::IndexType::eUint16);
             //TODO: learn more about dynamic descriptors
             commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline.pipelineLayout, 0, *descriptorSets[frameIndex], nullptr);
-            commandBuffer.drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0,0);
+            
+            for (size_t x = 0; x < 3; x++)
+            {
+                for (size_t y = 0; y < 3; y++)
+                {
+                    for (size_t z = 0; z < 3; z++)
+                    {
+                        chunk[x][y][z].draw(commandBuffers[frameIndex]);
+                    }
+                }
+            }
         }
         commandBuffers[frameIndex].end(swapchain,imageIndex);
     };
