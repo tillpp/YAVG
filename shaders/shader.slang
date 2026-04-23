@@ -51,6 +51,6 @@ float4 fragMain(VertexOutput inVert) : SV_Target
         color *= 0.8;
     }
 
-    return float4(color,1);
-    // return texture.Sample(inVert.fragTexCoord);
+    //return float4(color,1);
+    return texture.Sample(inVert.fragTexCoord);
 }

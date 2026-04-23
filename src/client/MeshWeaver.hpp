@@ -51,7 +51,7 @@ public:
                 vertices.push_back(Vertex{
                     .pos = glm::vec3(x+xOffset,y+yOffset,z+zOffset),
                     .color = scale*glm::vec3(x,y,z),
-                    .texCoord = glm::vec2(1,1)
+                    .texCoord = glm::vec2(scale*x,scale*z)
                 });
             }
             return vertexIndex[index];

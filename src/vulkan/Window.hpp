@@ -24,6 +24,7 @@ public:
     
     operator GLFWwindow*();
     
-    bool toggleFullscreen();
+    void toggleFullscreen();
+
     bool framebufferResized = false;
 };
