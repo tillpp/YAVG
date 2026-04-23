@@ -4,9 +4,9 @@
 class DescriptorSetLayout
 {
 public:
-    void create(Device& device,std::vector<vk::DescriptorSetLayoutBinding> bindings,size_t MAX_FRAMES_IN_FLIGHT, UBO& ubo, Image& image){
+    void create(Device& device,std::vector<vk::DescriptorSetLayoutBinding> bindings,uint32_t MAX_FRAMES_IN_FLIGHT, UBO& ubo, Image& image){
         vk::DescriptorSetLayoutCreateInfo layoutInfo{
-            .bindingCount = bindings.size(), 
+            .bindingCount = (uint32_t)bindings.size(), 
             .pBindings = bindings.data()
         };
         descriptorSetLayout = vk::raii::DescriptorSetLayout(device.device, layoutInfo);
