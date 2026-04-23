@@ -3,9 +3,9 @@
 
 void Device::create(Instance& instance,DeviceSettings settings,const DeviceFeatures& features){
     physicalDevice = pickPhysicalDevice(instance,settings,features);
-    initLogicalDevice(instance,settings,features);
+    initLogicalDevice(settings,features);
 }
-void Device::initLogicalDevice(Instance& instance,const DeviceSettings& settings,const DeviceFeatures& features){
+void Device::initLogicalDevice(const DeviceSettings& settings,const DeviceFeatures& features){
     // LOGICAL DEVICE:
     struct QueueInfo{
         Queue*  queue;
@@ -18,10 +18,10 @@ void Device::initLogicalDevice(Instance& instance,const DeviceSettings& settings
     auto createQueueMap = [&](){
         std::vector<vk::QueueFamilyProperties> queueFamilyProperties = physicalDevice.getQueueFamilyProperties();
         for (auto &&queue : settings.queues){
-            uint32_t queueIndex = ~0;
+            int32_t queueIndex = ~0;
             for (uint32_t qfpIndex = 0; qfpIndex < queueFamilyProperties.size(); qfpIndex++)
             {
-                if (queue->isQueueFamilySuitable(queueFamilyProperties[qfpIndex],qfpIndex,physicalDevice));
+                if (queue->isQueueFamilySuitable(queueFamilyProperties[qfpIndex],qfpIndex,physicalDevice))
                 {
                     // found a queue family that supports both graphics and present
                     queueIndex = qfpIndex;
@@ -35,7 +35,7 @@ void Device::initLogicalDevice(Instance& instance,const DeviceSettings& settings
             }
             
             float queuePriority = 0.5f;
-            queueMap[queueIndex].push_back((QueueInfo){
+            queueMap[queueIndex].push_back(QueueInfo{
                 .queue = queue,
                 .priority = queuePriority,
             });

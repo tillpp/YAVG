@@ -19,6 +19,6 @@ public:
 private:
     std::optional<int> isDeviceSuitable( vk::raii::PhysicalDevice const & physicalDevice ,DeviceSettings settings,const DeviceFeatures& features);
     vk::raii::PhysicalDevice pickPhysicalDevice(Instance& instance,const DeviceSettings& settings,const DeviceFeatures& features);
-    void initLogicalDevice(Instance& instance,const DeviceSettings& settings,const DeviceFeatures& features);
+    void initLogicalDevice(const DeviceSettings& settings,const DeviceFeatures& features);
     
 };

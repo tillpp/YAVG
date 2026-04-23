@@ -37,7 +37,7 @@ public:
         };
         //TODO: this can be optimized cause it only stores a bool:
         //TODO: dont recreate it for every chunk. 
-        size_t vertexIndexSize = (chunkSize+1)*(chunkSize+1)*(chunkSize+1);
+        constexpr size_t vertexIndexSize = (chunkSize+1)*(chunkSize+1)*(chunkSize+1);
         int32_t vertexIndex[vertexIndexSize];
         for (size_t i = 0; i < vertexIndexSize; i++){
             vertexIndex[i] = -1;

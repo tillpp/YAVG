@@ -97,7 +97,9 @@ target_link_libraries(YAVOG glfw)
 target_link_libraries(YAVOG vulkan)
 target_link_libraries(YAVOG glm)
 
-
+if(MSVC)
+  target_compile_options(YAVOG PRIVATE /wd2397 /wd4838)
+endif()
 target_include_directories(YAVOG PRIVATE
     ${stb_SOURCE_DIR}
 )
