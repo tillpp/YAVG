@@ -20,18 +20,15 @@ echo Creating %ROOT%
 if not exist "%ROOT%" mkdir "%ROOT%"
 
 REM DOWNLOAD CLANG
-echo Downloading Clang... 
-REM %LLVM_URL% %LLVM_ZIP%
+echo Downloading Clang and Cmake ....
+powershell -Command $ProgressPreference = 'SilentlyContinue'; "Invoke-WebRequest -uri %LLVM_URL% -OutFile %LLVM_ZIP%"
+powershell -Command $ProgressPreference = 'SilentlyContinue'; "Invoke-WebRequest -uri %CMAKE_URL% -OutFile %CMAKE_ZIP%"
+echo Extracting zip file...
+C:\Windows\System32\tar.exe -xf %LLVM_ZIP% --directory %ROOT%\llvm
+C:\Windows\System32\tar.exe -xf %CMAKE_ZIP% --directory %ROOT%\cmake
 
-REM DOWNLOAD CMAKE
-echo Downloading Cmake... 
+
 REM %CMAKE_URL% %CMAKE_ZIP%
-
-
-
-
-
-REM powershell -Command $ProgressPreference = 'SilentlyContinue'; "Invoke-WebRequest -uri %LLVM_URL% -OutFile %LLVM_ZIP%"
 REM powershell -Command "Invoke-WebRequest -Uri \"%LLVM_URL%\" -OutFile \"%LLVM_ZIP%\""
 REM powershell -Command "Expand-Archive -Force '%LLVM_ZIP%' '%ROOT%\llvm'"
 REM DOWNLOAD CMAKE
