@@ -1,5 +1,6 @@
 #pragma once
 #include <fstream>
+#include <filesystem>
 #include "vulkan/Swapchain.hpp"
 #include "VertexBuffer.hpp"
 #include "DepthBuffer.hpp"
@@ -7,7 +8,7 @@
 
 class Pipeline
 {
-    std::vector<char> readFile(const std::string& filename);
+    std::vector<char> readFile(const std::filesystem::path& filename);
     [[nodiscard]] vk::raii::ShaderModule createShaderModule(
         Device& device,
         const std::vector<char>& code) const;
@@ -18,7 +19,7 @@ public:
        
     void create(
         Device& device,
-        std::string shaderFile, 
+        std::filesystem::path shaderFile, 
         std::string entryFnVertex, 
         std::string entryFnFragment, 
         Swapchain& swapChain,

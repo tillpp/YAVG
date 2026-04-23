@@ -3,6 +3,9 @@
 
 ValidationLayer::ValidationLayer(InstanceSettings* settings)
 {
+#ifdef WIN32 //fck windows
+    enableValidationLayers = false;
+#endif
     if (enableValidationLayers)
     {
         settings->layers.insert(settings->layers.end(),validationLayers.begin(), validationLayers.end());

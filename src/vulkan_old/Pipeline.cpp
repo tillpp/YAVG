@@ -1,9 +1,8 @@
 #include "Pipeline.hpp"
 #include "DescriptorSetLayout.hpp"
 
-std::vector<char> Pipeline::readFile(const std::string& filename) {
+std::vector<char> Pipeline::readFile(const std::filesystem::path& filename) {
     std::ifstream file(filename, std::ios::ate | std::ios::binary);
-
     if (!file.is_open()) {
         throw std::runtime_error("failed to open file!");
     }
@@ -24,7 +23,7 @@ std::vector<char> Pipeline::readFile(const std::string& filename) {
 }
 void Pipeline::create(
     Device& device,
-    std::string shaderFile, 
+    std::filesystem::path shaderFile, 
     std::string entryFnVertex, 
     std::string entryFnFragment, 
     Swapchain& swapChain,
@@ -32,7 +31,7 @@ void Pipeline::create(
     DepthBuffer& depthBuffer) {
 
     // shader
-    vk::raii::ShaderModule shaderModule = createShaderModule(device,readFile(shaderFile.c_str()));
+    vk::raii::ShaderModule shaderModule = createShaderModule(device,readFile(shaderFile));
     vk::PipelineShaderStageCreateInfo vertShaderStageInfo{ 
         .stage = vk::ShaderStageFlagBits::eVertex,
         .module = shaderModule,

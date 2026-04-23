@@ -64,9 +64,15 @@ if(WIN32)
     GIT_REPOSITORY https://github.com/KhronosGroup/Vulkan-Loader.git
     GIT_TAG v1.3.280
   )
-
   FetchContent_MakeAvailable(vulkan_loader)
   message("${vulkan_headers_SOURCE_DIR}/include")
+
+  FetchContent_Declare(
+    slang
+    URL https://github.com/shader-slang/slang/releases/download/v2026.7/slang-2026.7-windows-x86_64.zip
+  )
+  FetchContent_MakeAvailable(slang)
+  
 else()
   FetchContent_Declare(
     vulkan
@@ -116,9 +122,9 @@ function (add_slang_shader_target TARGET)
   )
   add_custom_command (
           OUTPUT  ${BIN_OUTPUT_DIRECTORY}/slang.spv
-          COMMAND ${SLANGC_EXECUTABLE} ${SHADER_SOURCES} -target spirv -profile spirv_1_3 -emit-spirv-directly -fvk-use-entrypoint-name ${ENTRY_POINTS} -o ${BIN_OUTPUT_DIRECTORY}/slang.spv
+          COMMAND ${CMAKE_CROSSCOMPILING_EMULATOR} ${SLANGC_EXECUTABLE} ${SHADER_SOURCES} -target spirv -profile spirv_1_3 -emit-spirv-directly -fvk-use-entrypoint-name ${ENTRY_POINTS} -o ${BIN_OUTPUT_DIRECTORY}/slang.spv
           WORKING_DIRECTORY ${SHADERS_DIR}
-          DEPENDS ${SHADERS_DIR} ${SHADER_SOURCES}
+          DEPENDS ${SHADERS_DIR} ${SHADER_SOURCES} ${slang}
           COMMENT "Compiling Slang Shaders"
           VERBATIM
   )
@@ -129,6 +135,10 @@ endfunction()
 file(GLOB_RECURSE SHADER_SLANG_SOURCES CONFIGURE_DEPENDS
        ${PROJECT_SOURCE_DIR}/shaders/**.slang)
 
-set(SLANGC_EXECUTABLE "${vulkan_SOURCE_DIR}/x86_64/bin/slangc")
+if(WIN32)
+  set(SLANGC_EXECUTABLE "${slang_SOURCE_DIR}/bin/slangc.exe")
+else()
+  set(SLANGC_EXECUTABLE "${vulkan_SOURCE_DIR}/x86_64/bin/slangc")
+endif(WIN32)
 add_slang_shader_target( shaders SOURCES ${SHADER_SLANG_SOURCES})
 add_dependencies(YAVOG shaders)

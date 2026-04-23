@@ -99,7 +99,7 @@ void game(Game& _game) {
     dephBuffer.create(_game.commandPool,swapchain);
     Pipeline pipeline;
     pipeline.create(_game.device,
-        "bin/slang.spv",
+        std::filesystem::path("bin")/"slang.spv",
         "vertMain","fragMain",
         swapchain, dsLayout,dephBuffer);
     
