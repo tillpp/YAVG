@@ -1,4 +1,5 @@
 #include "Pipeline.hpp"
+#include "DescriptorSetLayout.hpp"
 
 std::vector<char> Pipeline::readFile(const std::string& filename) {
     std::ifstream file(filename, std::ios::ate | std::ios::binary);
@@ -27,7 +28,7 @@ void Pipeline::create(
     std::string entryFnVertex, 
     std::string entryFnFragment, 
     Swapchain& swapChain,
-    vk::raii::DescriptorSetLayout& descriptorSetLayout,
+    DescriptorSetLayout& dsLayout,
     DepthBuffer& depthBuffer) {
 
     // shader
@@ -117,7 +118,7 @@ void Pipeline::create(
     {
         vk::PipelineLayoutCreateInfo pipelineLayoutInfo{ 
             .setLayoutCount = 1, 
-            .pSetLayouts = &*descriptorSetLayout, 
+            .pSetLayouts = &*dsLayout.descriptorSetLayout, 
             .pushConstantRangeCount = 0 
         };
         pipelineLayout = vk::raii::PipelineLayout(device.device, pipelineLayoutInfo);

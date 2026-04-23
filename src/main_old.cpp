@@ -7,6 +7,9 @@
 #include "vulkan/Device.hpp"
 #include "vulkan_old/Pipeline.hpp"
 #include "vulkan_old/CommandBuffer.hpp"
+#include "vulkan_old/DescriptorSetLayout.hpp"
+#include "vulkan_old/Camera.hpp"
+
 #include "client/Game.hpp"
 #include <array>
 
@@ -35,7 +38,7 @@ struct Chunk{
             for (size_t x = 0; x < 33; x++){
                 for (size_t y = 0; y < 33; y++){
                     for (size_t z = 0; z < 33; z++){
-                        int value = (noise.GetNoise((float)x+xOffset, (float)z+zOffset)*48+48)>(float) y+yOffset;
+                        int value = (noise.GetNoise((float)x+xOffset, (float)z+zOffset)*32+32)>(float) y+yOffset;
                         // if(x==0||y==0||z==0||x==32||y==32||z==32)
                             // value = 0;
                         data[x*33*33+y*33+z] = value;
@@ -70,93 +73,51 @@ void game(Game& _game) {
     FastNoiseLite noise(t);
     noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
     noise.SetFractalType(FastNoiseLite::FractalType_FBm);
-    noise.SetFrequency(0.01);
+    noise.SetFrequency(0.005);
     //noise.SetFractalGain(0.75);
     noise.SetFractalOctaves(5);
-    //noise.SetFractalLacunarity(2);
-    
-   
-
+    //noise.SetFractalLacunarity(2);    
 
     constexpr int MAX_FRAMES_IN_FLIGHT = 2;
     auto& swapchain = _game.swapchain;
+    Image image;
+    image.create(_game.commandPool);
     UBO ubo;
     ubo.create(_game.device,MAX_FRAMES_IN_FLIGHT);
-    vk::raii::DescriptorSetLayout descriptorSetLayout = nullptr;
-    {
-        std::array bindings = {
+    DescriptorSetLayout dsLayout;
+    dsLayout.create(_game.device,
+        {
             vk::DescriptorSetLayoutBinding( 0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex, nullptr),
             vk::DescriptorSetLayoutBinding( 1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment, nullptr)
-        };
-
-        vk::DescriptorSetLayoutCreateInfo layoutInfo{
-            .bindingCount = bindings.size(), 
-            .pBindings = bindings.data()
-        };
-        descriptorSetLayout = vk::raii::DescriptorSetLayout(_game.device.device, layoutInfo);
-
-    }
-    vk::raii::DescriptorPool descriptorPool = nullptr;
-    {
-        std::array poolSize {
-            vk::DescriptorPoolSize( vk::DescriptorType::eUniformBuffer, MAX_FRAMES_IN_FLIGHT),
-            vk::DescriptorPoolSize(  vk::DescriptorType::eCombinedImageSampler, MAX_FRAMES_IN_FLIGHT)
-        };
-        vk::DescriptorPoolCreateInfo poolInfo{ 
-            .flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-            .maxSets = MAX_FRAMES_IN_FLIGHT,
-            .poolSizeCount = poolSize.size(),
-            .pPoolSizes = poolSize.data()
-        };
-        descriptorPool = vk::raii::DescriptorPool(_game.device.device, poolInfo);
-    }
+        },
+        MAX_FRAMES_IN_FLIGHT,
+        ubo,image
+    );
+    
     
     DepthBuffer dephBuffer;
     dephBuffer.create(_game.commandPool,swapchain);
-    
     Pipeline pipeline;
     pipeline.create(_game.device,
         "bin/slang.spv",
         "vertMain","fragMain",
-        swapchain, descriptorSetLayout,dephBuffer);
+        swapchain, dsLayout,dephBuffer);
     
-    Chunk chunk[3][3][3];
-    for (size_t x = 0; x < 3; x++)
+    const size_t range = 5;
+    Chunk chunk[range][range][range];
+    for (size_t x = 0; x < range; x++)
     {
-        for (size_t y = 0; y < 3; y++)
+        for (size_t y = 0; y < range; y++)
         {
-            for (size_t z = 0; z < 3; z++)
+            for (size_t z = 0; z < range; z++)
             {
-                chunk[x][y][z].create(_game.device,_game.commandPool,noise,x*32,y*32,z*32);
+                chunk[x][y][z].create(_game.device,_game.commandPool,noise,x*32,-32+y*32,z*32);
             }
         }
         
     }
     
-    Image image;
-    image.create(_game.commandPool);
-
-    std::vector<vk::raii::DescriptorSet> descriptorSets;
-    {
-        std::vector<vk::DescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, *descriptorSetLayout);
-        vk::DescriptorSetAllocateInfo allocInfo{ .descriptorPool = descriptorPool, .descriptorSetCount = static_cast<uint32_t>(layouts.size()), .pSetLayouts = layouts.data() };
-
-        descriptorSets.clear();
-        descriptorSets = _game.device.device.allocateDescriptorSets(allocInfo);
-
-        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            vk::DescriptorBufferInfo bufferInfo{ .buffer = ubo.uniformBuffers[i].buffer, .offset = 0, .range = sizeof(UniformBufferObject) };
-            vk::DescriptorImageInfo imageInfo{ .sampler = image.textureSampler, .imageView = image.imageView, .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal};
-            
-            std::array descriptorWrites{
-                vk::WriteDescriptorSet{ .dstSet = descriptorSets[i], .dstBinding = 0, .dstArrayElement = 0, .descriptorCount = 1,
-                    .descriptorType = vk::DescriptorType::eUniformBuffer, .pBufferInfo = &bufferInfo },
-                vk::WriteDescriptorSet{ .dstSet = descriptorSets[i], .dstBinding = 1, .dstArrayElement = 0, .descriptorCount = 1,
-                    .descriptorType = vk::DescriptorType::eCombinedImageSampler, .pImageInfo = &imageInfo }
-            };
-            _game.device.device.updateDescriptorSets(descriptorWrites, {});
-        }
-    }
+    
 
 
     uint32_t frameIndex = 0;
@@ -179,17 +140,14 @@ void game(Game& _game) {
         dephBuffer.create(_game.commandPool,swapchain);
     };
 
-    glm::vec3 cameraPos = glm::vec3(1.0f, 5.0f, 5.0f);
-    glm::vec3 cameraForward = glm::vec3(0.0f, -1.0f, -1.0f);
-    glm::vec3 cameraRight = glm::vec3(-1.0f, -1.0f, 0.0f);
-    
+    Camera camera;
     // TODO refactor the following in the future:
     auto recordCommandBuffer = [&](uint32_t imageIndex)
     {
         float aspectRatio = static_cast<float>(swapchain.swapChainExtent.width) / static_cast<float>(swapchain.swapChainExtent.height);
 
         bool zoom = glfwGetKey(_game.window,GLFW_KEY_C) == GLFW_PRESS;
-        ubo.updateUniformBuffer(frameIndex,aspectRatio, zoom,cameraPos,cameraForward);
+        ubo.updateUniformBuffer(frameIndex,aspectRatio, zoom,camera.pos,camera.forward);
         commandBuffers[frameIndex].begin(swapchain,imageIndex,dephBuffer);
         auto& commandBuffer = commandBuffers[frameIndex].commandBuffer;
         {
@@ -199,13 +157,13 @@ void game(Game& _game) {
             commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapchain.swapChainExtent));
             
             //TODO: learn more about dynamic descriptors
-            commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline.pipelineLayout, 0, *descriptorSets[frameIndex], nullptr);
+            commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline.pipelineLayout, 0, *dsLayout.descriptorSets[frameIndex], nullptr);
             
-            for (size_t x = 0; x < 3; x++)
+            for (size_t x = 0; x < range; x++)
             {
-                for (size_t y = 0; y < 3; y++)
+                for (size_t y = 0; y < range; y++)
                 {
-                    for (size_t z = 0; z < 3; z++)
+                    for (size_t z = 0; z < range; z++)
                     {
                         chunk[x][y][z].draw(commandBuffers[frameIndex]);
                     }
@@ -308,50 +266,12 @@ void game(Game& _game) {
             delta = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - lastFrame).count();
             lastFrame = currentTime;
         }
-        //camera rotation
+        //camera 
         if(grabMouse)
         {
-            float sensitivity = 0.05;
-            double xpos, ypos;
-            glfwGetCursorPos(_game.window, &xpos, &ypos);
-            if(ypos*sensitivity > 89.0 || -89.0 >ypos*sensitivity){
-                ypos = glm::clamp(ypos*sensitivity,-89.0,89.0)/sensitivity;
-                glfwSetCursorPos(_game.window,xpos,ypos);
-            }
-            
-            auto rotation = glm::mat4(1.f);
-            rotation = glm::rotate(rotation, glm::radians(-(float)xpos*sensitivity) , glm::vec3(0.0f, 1.0f, 0.0f));
-            rotation = glm::rotate(rotation, glm::radians(-(float)ypos*sensitivity) , glm::vec3(1.0f, 0.0f, 0.0f));
-            cameraForward = rotation*glm::vec4(0.0f, 0, -1.0f,1.0f);
-            cameraRight   = rotation*glm::vec4(1.0f, 0, 0.0f,1.0f);
+            camera.update(_game.window,delta);   
         }
-        //camera position
-        float speed = 4.f;
-        if(glfwGetKey(_game.window,GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS){
-            speed = 20.f;
-        }
-        {
-            auto forward = glm::normalize(glm::vec3(cameraForward.x,0,cameraForward.z));
-            auto right   = glm::normalize(glm::vec3(cameraRight.x  ,0,cameraRight.z  ));
-            if(glfwGetKey(_game.window,GLFW_KEY_W) == GLFW_PRESS){
-                cameraPos += forward*delta*speed;
-            }
-            if(glfwGetKey(_game.window,GLFW_KEY_S) == GLFW_PRESS){
-                cameraPos -= forward*delta*speed;
-            }
-            if(glfwGetKey(_game.window,GLFW_KEY_D) == GLFW_PRESS){
-                cameraPos += right*delta*speed;
-            }
-            if(glfwGetKey(_game.window,GLFW_KEY_A) == GLFW_PRESS){
-                cameraPos -= right*delta*speed;
-            }
-        }
-        if(glfwGetKey(_game.window,GLFW_KEY_SPACE) == GLFW_PRESS){
-            cameraPos += glm::vec3(0.f,1.f,0.f)*delta*speed;
-        }
-        if(glfwGetKey(_game.window,GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS){
-            cameraPos -= glm::vec3(0.f,1.f,0.f)*delta*speed;
-        }
+        
 
     }
     _game.device.device.waitIdle();

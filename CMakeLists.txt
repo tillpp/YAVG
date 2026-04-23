@@ -3,6 +3,13 @@ include(FetchContent)
 project(YAVOG)
 set(CMAKE_CXX_STANDARD 20)           
 
+if(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+      add_compile_options(-m64 -Wa,-mbig-obj)
+endif()
+
+if(WIN32)
+  add_compile_options( -static -lpthread)
+endif()
 
 # sources
 file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS
@@ -31,10 +38,6 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/g-truc/glm.git
 )
 FetchContent_Declare(
-  vulkan
-  URL https://sdk.lunarg.com/sdk/download/1.4.341.1/linux/vulkansdk-linux-x86_64-1.4.341.1.tar.xz
-)
-FetchContent_Declare(
   stb
   GIT_REPOSITORY https://github.com/nothings/stb.git
   GIT_TAG 31c1ad37456438565541f4919958214b6e762fb4
@@ -45,13 +48,38 @@ FetchContent_Declare(
   GIT_TAG 4a17083770411d2af8fd99b1f249ea10143dc959 # don't remove Tag. Small star library, better check code after each update for malicious code.
   SOURCE_SUBDIR Cpp
 )
-FetchContent_MakeAvailable(glfw vulkan glm stb fastnoiselite)
+FetchContent_MakeAvailable(glfw glm stb fastnoiselite)
 
-add_library(vulkan SHARED IMPORTED)
-set_target_properties(vulkan PROPERTIES
-    IMPORTED_LOCATION "${vulkan_SOURCE_DIR}/x86_64/lib/libvulkan.so"
-    INTERFACE_INCLUDE_DIRECTORIES "${vulkan_SOURCE_DIR}/x86_64/include"
-)
+#vulkan
+if(WIN32)
+  message(${CMAKE_RC_COMPILER})
+  FetchContent_Declare(
+    vulkan_headers
+    GIT_REPOSITORY https://github.com/KhronosGroup/Vulkan-Headers.git
+    GIT_TAG v1.3.280
+  )
+  FetchContent_MakeAvailable(vulkan_headers)
+  FetchContent_Declare(
+    vulkan_loader
+    GIT_REPOSITORY https://github.com/KhronosGroup/Vulkan-Loader.git
+    GIT_TAG v1.3.280
+  )
+
+  FetchContent_MakeAvailable(vulkan_loader)
+  message("${vulkan_headers_SOURCE_DIR}/include")
+else()
+  FetchContent_Declare(
+    vulkan
+    URL https://sdk.lunarg.com/sdk/download/1.4.341.1/linux/vulkansdk-linux-x86_64-1.4.341.1.tar.xz
+  )
+  FetchContent_MakeAvailable(vulkan)
+  add_library(vulkan SHARED IMPORTED)
+  set_target_properties(vulkan PROPERTIES
+      IMPORTED_LOCATION "${vulkan_SOURCE_DIR}/x86_64/lib/libvulkan.so"
+      INTERFACE_INCLUDE_DIRECTORIES "${vulkan_SOURCE_DIR}/x86_64/include"
+  )
+endif(WIN32)
+
 
 include_directories(${CMAKE_SOURCE_DIR}/libs/include)
 link_directories(${CMAKE_SOURCE_DIR}/libs/lib)
@@ -63,12 +91,19 @@ target_link_libraries(YAVOG glfw)
 target_link_libraries(YAVOG vulkan)
 target_link_libraries(YAVOG glm)
 
+
 target_include_directories(YAVOG PRIVATE
     ${stb_SOURCE_DIR}
 )
 target_include_directories(YAVOG PRIVATE
   ${fastnoiselite_SOURCE_DIR}/Cpp
 )
+if(WIN32)
+  add_compile_definitions(_WIN32_WINNT=0x0600)
+  target_link_libraries(YAVOG ws2_32)
+  target_link_libraries(YAVOG wsock32)
+  target_include_directories(YAVOG PRIVATE ${vulkan_headers_SOURCE_DIR}/include)
+endif()
 
 # shaders
 function (add_slang_shader_target TARGET)

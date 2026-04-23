@@ -6,20 +6,20 @@ ValidationLayer::ValidationLayer(InstanceSettings* settings)
     if (enableValidationLayers)
     {
         settings->layers.insert(settings->layers.end(),validationLayers.begin(), validationLayers.end());
-    }
-
-    // check support
-    vk::raii::Context  context;
-    auto layerProperties = context.enumerateInstanceLayerProperties();
-	auto unsupportedLayerIt = std::ranges::find_if(validationLayers,
-        [&layerProperties](auto const &requiredLayer) {
+        
+        // check support
+        vk::raii::Context  context;
+        auto layerProperties = context.enumerateInstanceLayerProperties();
+        auto unsupportedLayerIt = std::ranges::find_if(validationLayers,
+            [&layerProperties](auto const &requiredLayer) {
             return std::ranges::none_of(layerProperties,
-                [requiredLayer](auto const &layerProperty) { return strcmp(layerProperty.layerName, requiredLayer) == 0; });
+            [requiredLayer](auto const &layerProperty) { return strcmp(layerProperty.layerName, requiredLayer) == 0; });
         });
-	if (unsupportedLayerIt != validationLayers.end())
-	{
-		throw std::runtime_error("Required layer not supported: " + std::string(*unsupportedLayerIt));
-	}
+        if (unsupportedLayerIt != validationLayers.end())
+        {
+            throw std::runtime_error("Required layer not supported: " + std::string(*unsupportedLayerIt));
+        }
+    }
 
 }
 

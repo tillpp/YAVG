@@ -22,6 +22,6 @@ public:
         std::string entryFnVertex, 
         std::string entryFnFragment, 
         Swapchain& swapChain,
-        vk::raii::DescriptorSetLayout& descriptorSetLayout,
+        class DescriptorSetLayout& dsLayout,
         DepthBuffer& depthBuffer);
 };

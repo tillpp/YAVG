@@ -10,7 +10,7 @@ void Instance::create(InstanceSettings settings){
         .applicationVersion = VK_MAKE_VERSION( 1, 0, 0 ),
         .pEngineName        = "No Engine",
         .engineVersion      = VK_MAKE_VERSION( 1, 0, 0 ),
-        .apiVersion         = vk::ApiVersion14,
+        .apiVersion         = vk::ApiVersion13,
     };
 
     // for macOS

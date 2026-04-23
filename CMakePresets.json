@@ -1,0 +1,38 @@
+{
+    "version": 3,
+    "cmakeMinimumRequired": {
+      "major": 3,
+      "minor": 13,
+      "patch": 0
+    },
+    "configurePresets": [
+      {
+        "name": "linux",
+        "generator": "Unix Makefiles",
+        "binaryDir": "${sourceDir}/build/linux",
+        "cacheVariables": {
+          "CMAKE_BUILD_TYPE": "Debug"
+        }
+      },
+      {
+        "name": "windows_on_linux",
+        "description": "Crosscompilation",
+        "generator": "Unix Makefiles",
+        "toolchainFile": "${sourceDir}/cmake/toolchain-windows.cmake",
+        "binaryDir": "${sourceDir}/build/windows",
+        "cacheVariables": {
+          "CMAKE_BUILD_TYPE": "Debug"
+        }
+      }
+    ],
+    "buildPresets": [
+        {
+            "name": "linux",
+            "configurePreset": "linux"
+        },
+        {
+            "name": "windows_on_linux",
+            "configurePreset": "windows_on_linux"
+        }
+    ]
+  }

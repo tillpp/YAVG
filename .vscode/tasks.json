@@ -1,0 +1,38 @@
+{
+    "tasks": [
+        {
+            "label": "Run Wine",
+            "type": "shell",
+            "command": "wine /usr/share/win64/gdbserver.exe localhost:12345 ${command:cmake.launchTargetPath}",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "dedicated",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": [
+                {
+                    "pattern": [
+                        {
+                        "regexp": ".",
+                        "file": 1,
+                        "location": 2,
+                        "message": 3
+                        }
+                    ],
+                    "background": {
+                        "activeOnStart": true,
+                        "beginsPattern": ".",
+                        "endsPattern": ".",
+                    }
+                }
+            ],
+            "isBackground": true,
+            "runOptions": {
+                "instanceLimit": 1,
+            },
+        }
+    ]
+}

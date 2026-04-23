@@ -34,7 +34,7 @@ void GameFolder::findDirectory(){
         }
     }
 #endif
-    std::cout << directory.c_str() << std::endl;
+    std::cout << directory.string() << std::endl;
     if( !directory.empty() && !fs::exists(directory)){
         fs::create_directories(directory);
     }

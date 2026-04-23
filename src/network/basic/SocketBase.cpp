@@ -84,6 +84,7 @@ bool SocketBase::shutdown(bool shutdown_read,bool shutdown_write){
        return false;
     }
 #elif WIN32
+    int value = 0;
     if(shutdown_read)
         value = SD_RECEIVE;
     else if(shutdown_write)
