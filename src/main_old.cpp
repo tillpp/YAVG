@@ -91,6 +91,7 @@ void game(Game& _game) {
     DepthBuffer dephBuffer;
     Pipeline pipeline;
     
+    render.create(_game.commandPool,_game.swapchain);
     image.create(_game.commandPool);
     ubo.create(_game.device,render.MAX_FRAMES_IN_FLIGHT);
     dsLayout.create(_game.device,
@@ -109,12 +110,9 @@ void game(Game& _game) {
 
     const size_t range = 5;
     Chunk2 chunk[range][range][range];
-    for (size_t x = 0; x < range; x++)
-    {
-        for (size_t y = 0; y < range; y++)
-        {
-            for (size_t z = 0; z < range; z++)
-            {
+    for (size_t x = 0; x < range; x++){
+        for (size_t y = 0; y < range; y++){
+            for (size_t z = 0; z < range; z++){
                 chunk[x][y][z].create(_game.device,_game.commandPool,noise,x*32,-32+y*32,z*32);
             }
         }
@@ -136,14 +134,12 @@ void game(Game& _game) {
             commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), _game.swapchain.swapChainExtent));
             
             //TODO: learn more about dynamic descriptors
-            commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline.pipelineLayout, 0, *dsLayout.descriptorSets[frameIndex], nullptr);
+            dsLayout.use(commandBuffer,render,pipeline);
+    
             
-            for (size_t x = 0; x < range; x++)
-            {
-                for (size_t y = 0; y < range; y++)
-                {
-                    for (size_t z = 0; z < range; z++)
-                    {
+            for (size_t x = 0; x < range; x++){
+                for (size_t y = 0; y < range; y++){
+                    for (size_t z = 0; z < range; z++){
                         chunk[x][y][z].draw(CB);
                     }
                 }
@@ -154,7 +150,6 @@ void game(Game& _game) {
 
     
 
-    render.create(_game.commandPool,_game.swapchain);
 
     //FPS counter
     auto lastSecond = std::chrono::steady_clock::now();

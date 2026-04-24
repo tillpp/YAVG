@@ -32,6 +32,7 @@ class DepthBuffer
                 vk::FormatFeatureFlagBits::eDepthStencilAttachment
             );
     }
+    
     Image image;
     vk::Format depthFormat;
     void create(CommandPool& pool,Swapchain& swapchain){

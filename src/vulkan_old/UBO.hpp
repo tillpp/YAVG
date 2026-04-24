@@ -41,7 +41,7 @@ public:
     }
 
     //static_cast<float>(swapChainExtent.width) / static_cast<float>(swapChainExtent.height)
-    void updateUniformBuffer(uint32_t currentImage, float aspectRatio, bool zoom,glm::vec3 cameraPos,glm::vec3 cameraForward) {
+    void updateUniformBuffer(uint32_t currentFrame, float aspectRatio, bool zoom,glm::vec3 cameraPos,glm::vec3 cameraForward) {
         static auto startTime = std::chrono::high_resolution_clock::now();
         auto currentTime = std::chrono::high_resolution_clock::now();
         float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
@@ -59,7 +59,7 @@ public:
         // cause glm wasnt designed for Vulkan: (invert y aches)
         ubo.proj[1][1] *= -1;
 
-        memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
+        memcpy(uniformBuffersMapped[currentFrame], &ubo, sizeof(ubo));
     }
 };
 
