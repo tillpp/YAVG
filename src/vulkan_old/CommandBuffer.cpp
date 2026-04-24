@@ -7,7 +7,7 @@ vk::CommandBufferAllocateInfo allocInfo{ .commandPool = *pool.commandPool, .leve
 
 commandBuffer = std::move(vk::raii::CommandBuffers(pool.getDevice().device, allocInfo).front());
 }
-void CommandBuffer::begin(Swapchain& swapchain,uint32_t imageIndex,DepthBuffer& depthBuffer){
+void CommandBuffer::begin(Swapchain& swapchain,uint32_t imageIndex,DepthBuffer* depthBuffer){
     commandBuffer.begin({});
     // Before starting rendering, transition the swapchain image to vk::ImageLayout::eColorAttachmentOptimal
     transition_image_layout(
@@ -21,26 +21,23 @@ void CommandBuffer::begin(Swapchain& swapchain,uint32_t imageIndex,DepthBuffer& 
         vk::ImageAspectFlagBits::eColor
     );
 
-    transition_image_layout(
-        *depthBuffer.image.image,
-        vk::ImageLayout::eUndefined,
-        vk::ImageLayout::eDepthAttachmentOptimal,
-        vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
-        vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
-        vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
-        vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
-        vk::ImageAspectFlagBits::eDepth
-    );
+    if(depthBuffer){
+        transition_image_layout(
+            *(*depthBuffer).image.image,
+            vk::ImageLayout::eUndefined,
+            vk::ImageLayout::eDepthAttachmentOptimal,
+            vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
+            vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
+            vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
+            vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
+            vk::ImageAspectFlagBits::eDepth
+        );
+    }
 
-    vk::ClearValue              clearColor     = vk::ClearColorValue(0.01f, 0.0f, 0.01f, 1.0f);
+    vk::ClearValue clearColor = vk::ClearColorValue(0.01f, 0.0f, 0.01f, 1.0f);
     vk::ClearValue clearDepth = vk::ClearDepthStencilValue(1.0f, 0);
     
-    vk::RenderingAttachmentInfo depthAttachmentInfo = {
-        .imageView   = depthBuffer.image.imageView,
-        .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
-        .loadOp      = vk::AttachmentLoadOp::eClear,
-        .storeOp     = vk::AttachmentStoreOp::eDontCare,
-        .clearValue  = clearDepth};
+
     vk::RenderingAttachmentInfo attachmentInfo = {
         .imageView   = swapchain.imageViews[imageIndex],
         .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
@@ -53,8 +50,19 @@ void CommandBuffer::begin(Swapchain& swapchain,uint32_t imageIndex,DepthBuffer& 
         .layerCount           = 1,
         .colorAttachmentCount = 1,
         .pColorAttachments    = &attachmentInfo,
-        .pDepthAttachment     = &depthAttachmentInfo};
+    };
+    vk::RenderingAttachmentInfo depthAttachmentInfo;
+    if(depthBuffer){
+        depthAttachmentInfo = {
+            .imageView   = (*depthBuffer).image.imageView,
+            .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
+            .loadOp      = vk::AttachmentLoadOp::eClear,
+            .storeOp     = vk::AttachmentStoreOp::eDontCare,
+            .clearValue  = clearDepth
+        };
+        renderingInfo.pDepthAttachment     = &depthAttachmentInfo;
 
+    }
     commandBuffer.beginRendering(renderingInfo);
 }
 void CommandBuffer::end(Swapchain& swapchain,uint32_t imageIndex){

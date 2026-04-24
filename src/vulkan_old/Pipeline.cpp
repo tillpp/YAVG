@@ -1,19 +1,8 @@
 #include "Pipeline.hpp"
 #include "DescriptorSetLayout.hpp"
+#include "Parser/File.hpp"
 
-std::vector<char> Pipeline::readFile(const std::filesystem::path& filename) {
-    std::ifstream file(filename, std::ios::ate | std::ios::binary);
-    if (!file.is_open()) {
-        throw std::runtime_error("failed to open file!");
-    }
-    std::vector<char> buffer(file.tellg());
-    file.seekg(0, std::ios::beg);
-    file.read(buffer.data(), static_cast<std::streamsize>(buffer.size()));
-    file.close();
-
-    return buffer;
-}
- [[nodiscard]] vk::raii::ShaderModule Pipeline::createShaderModule(
+[[nodiscard]] vk::raii::ShaderModule Pipeline::createShaderModule(
     Device& device,
     const std::vector<char>& code) const{
 

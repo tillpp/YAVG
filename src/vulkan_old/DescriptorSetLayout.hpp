@@ -11,6 +11,7 @@ public:
         };
         descriptorSetLayout = vk::raii::DescriptorSetLayout(device.device, layoutInfo);
 
+        //pool creation
         {
             std::array poolSize {
                 vk::DescriptorPoolSize( vk::DescriptorType::eUniformBuffer, MAX_FRAMES_IN_FLIGHT),

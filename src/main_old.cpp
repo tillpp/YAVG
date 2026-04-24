@@ -9,6 +9,8 @@
 #include "vulkan_old/CommandBuffer.hpp"
 #include "vulkan_old/DescriptorSetLayout.hpp"
 #include "vulkan_old/Camera.hpp"
+#include "vulkan_old/Render.hpp"
+#include "server/Region.hpp"
 
 #include "client/Game.hpp"
 #include <array>
@@ -25,7 +27,7 @@
 #include "FastNoiseLite.h"
 
 
-struct Chunk{
+struct Chunk2{
     Buffer vertexBuffer,indexBuffer;
     std::vector<Vertex> vertices;
     std::vector<uint16_t> indices;
@@ -68,9 +70,9 @@ struct Chunk{
     }
 };
 void game(Game& _game) {
-
     time_t t;
     time(&t);
+    srand(t);
     FastNoiseLite noise(t);
     noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
     noise.SetFractalType(FastNoiseLite::FractalType_FBm);
@@ -79,33 +81,34 @@ void game(Game& _game) {
     noise.SetFractalOctaves(5);
     //noise.SetFractalLacunarity(2);    
 
-    constexpr int MAX_FRAMES_IN_FLIGHT = 2;
-    auto& swapchain = _game.swapchain;
+
+
+    Render render;
     Image image;
-    image.create(_game.commandPool);
     UBO ubo;
-    ubo.create(_game.device,MAX_FRAMES_IN_FLIGHT);
     DescriptorSetLayout dsLayout;
+    Camera camera;
+    DepthBuffer dephBuffer;
+    Pipeline pipeline;
+    
+    image.create(_game.commandPool);
+    ubo.create(_game.device,render.MAX_FRAMES_IN_FLIGHT);
     dsLayout.create(_game.device,
         {
             vk::DescriptorSetLayoutBinding( 0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex, nullptr),
             vk::DescriptorSetLayoutBinding( 1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment, nullptr)
         },
-        MAX_FRAMES_IN_FLIGHT,
+        render.MAX_FRAMES_IN_FLIGHT,
         ubo,image
     );
-    
-    
-    DepthBuffer dephBuffer;
-    dephBuffer.create(_game.commandPool,swapchain);
-    Pipeline pipeline;
+    dephBuffer.create(_game.commandPool,_game.swapchain);
     pipeline.create(_game.device,
         std::filesystem::path("bin")/"slang.spv",
         "vertMain","fragMain",
-        swapchain, dsLayout,dephBuffer);
-    
+        _game.swapchain, dsLayout,dephBuffer);
+
     const size_t range = 5;
-    Chunk chunk[range][range][range];
+    Chunk2 chunk[range][range][range];
     for (size_t x = 0; x < range; x++)
     {
         for (size_t y = 0; y < range; y++)
@@ -117,45 +120,20 @@ void game(Game& _game) {
         }
         
     }
-    
-    
 
-
-    uint32_t frameIndex = 0;
-    
-    std::vector<CommandBuffer> commandBuffers;
-    std::vector<vk::raii::Semaphore> presentCompleteSemaphores;
-    std::vector<vk::raii::Semaphore> renderFinishedSemaphores;
-    std::vector<vk::raii::Fence> inFlightFences;
-    
-    auto recreateSwapChain = [&](){
-        int width = 0, height = 0;
-        glfwGetFramebufferSize(_game.window, &width, &height);
-        while (width == 0 || height == 0) {
-            glfwGetFramebufferSize(_game.window, &width, &height);
-            glfwWaitEvents();
-        }
-        _game.device.device.waitIdle();
-
-        swapchain.recreate(_game.window,_game.device);
-        dephBuffer.create(_game.commandPool,swapchain);
-    };
-
-    Camera camera;
     // TODO refactor the following in the future:
-    auto recordCommandBuffer = [&](uint32_t imageIndex)
+    auto recordCommandBuffer = [&](CommandBuffer& CB,uint32_t frameIndex,uint32_t imageIndex)
     {
-        float aspectRatio = static_cast<float>(swapchain.swapChainExtent.width) / static_cast<float>(swapchain.swapChainExtent.height);
+        float aspectRatio = static_cast<float>(_game.swapchain.swapChainExtent.width) / static_cast<float>(_game.swapchain.swapChainExtent.height);
 
         bool zoom = glfwGetKey(_game.window,GLFW_KEY_C) == GLFW_PRESS;
         ubo.updateUniformBuffer(frameIndex,aspectRatio, zoom,camera.pos,camera.forward);
-        commandBuffers[frameIndex].begin(swapchain,imageIndex,dephBuffer);
-        auto& commandBuffer = commandBuffers[frameIndex].commandBuffer;
+        
+        auto& commandBuffer = CB.commandBuffer;
         {
-
             commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline.graphicsPipeline);
-            commandBuffer.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapchain.swapChainExtent.width), static_cast<float>(swapchain.swapChainExtent.height), 0.0f, 1.0f));
-            commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapchain.swapChainExtent));
+            commandBuffer.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(_game.swapchain.swapChainExtent.width), static_cast<float>(_game.swapchain.swapChainExtent.height), 0.0f, 1.0f));
+            commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), _game.swapchain.swapChainExtent));
             
             //TODO: learn more about dynamic descriptors
             commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline.pipelineLayout, 0, *dsLayout.descriptorSets[frameIndex], nullptr);
@@ -166,82 +144,17 @@ void game(Game& _game) {
                 {
                     for (size_t z = 0; z < range; z++)
                     {
-                        chunk[x][y][z].draw(commandBuffers[frameIndex]);
+                        chunk[x][y][z].draw(CB);
                     }
                 }
             }
         }
-        commandBuffers[frameIndex].end(swapchain,imageIndex);
     };
 
 
     
 
-    assert(presentCompleteSemaphores.empty() && renderFinishedSemaphores.empty() && inFlightFences.empty());
-    for (size_t i = 0; i < swapchain.images.size(); i++)
-	{
-		renderFinishedSemaphores.emplace_back(_game.device.device, vk::SemaphoreCreateInfo());
-	}
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-    {
-        presentCompleteSemaphores.emplace_back(_game.device.device, vk::SemaphoreCreateInfo());
-        inFlightFences.emplace_back(_game.device.device, vk::FenceCreateInfo{.flags = vk::FenceCreateFlagBits::eSignaled});
-        commandBuffers.emplace_back(_game.commandPool);
-    }
-    
-    
-    auto drawFrame = [&](){
-        auto fenceResult = _game.device.device.waitForFences(*inFlightFences[frameIndex], vk::True, UINT64_MAX);
-		if (fenceResult != vk::Result::eSuccess)
-		{
-			throw std::runtime_error("failed to wait for fence!");
-		}
-        auto [result, imageIndex] = swapchain.swapChain.acquireNextImage(UINT64_MAX, *presentCompleteSemaphores[frameIndex], nullptr);
-        if(result == vk::Result::eErrorOutOfDateKHR){
-            recreateSwapChain();
-            return;
-        }
-        else if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR)
-        {
-            assert(result == vk::Result::eTimeout || result == vk::Result::eNotReady);
-            throw std::runtime_error("failed to acquire swap chain image!");
-        }
-        
-        _game.device.device.resetFences(*inFlightFences[frameIndex]);
-		commandBuffers[frameIndex].commandBuffer.reset();
-        recordCommandBuffer(imageIndex);
-        vk::PipelineStageFlags waitDestinationStageMask( vk::PipelineStageFlagBits::eColorAttachmentOutput );
-        const vk::SubmitInfo   submitInfo{
-            .waitSemaphoreCount   = 1,
-            .pWaitSemaphores      = &*presentCompleteSemaphores[frameIndex],
-            .pWaitDstStageMask    = &waitDestinationStageMask,
-            .commandBufferCount   = 1,
-            .pCommandBuffers      = &*commandBuffers[frameIndex].commandBuffer,
-            .signalSemaphoreCount = 1,
-            .pSignalSemaphores    = &*renderFinishedSemaphores[imageIndex]
-        };
-        (_game.queue).submit(submitInfo, *inFlightFences[frameIndex]);
-
-
-        const vk::PresentInfoKHR presentInfoKHR{
-            .waitSemaphoreCount = 1,
-            .pWaitSemaphores    = &*renderFinishedSemaphores[imageIndex],
-            .swapchainCount     = 1,
-            .pSwapchains        = &*swapchain.swapChain,
-            .pImageIndices      = &imageIndex};
-        result = _game.queue.presentKHR(presentInfoKHR);
-        if ((result == vk::Result::eSuboptimalKHR) || (result == vk::Result::eErrorOutOfDateKHR))
-        {
-            recreateSwapChain();
-        }
-        else
-        {
-            // There are no other success codes than eSuccess; on any error code, presentKHR already threw an exception.
-            assert(result == vk::Result::eSuccess);
-        }
-        
-        frameIndex = (frameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
-    };
+    render.create(_game.commandPool,_game.swapchain);
 
     //FPS counter
     auto lastSecond = std::chrono::steady_clock::now();
@@ -250,7 +163,7 @@ void game(Game& _game) {
 
     while(_game.window.update()){
         glfwPollEvents();
-        drawFrame();   
+        render.draw(_game.window,_game.swapchain,_game.commandPool,&dephBuffer,recordCommandBuffer);   
         auto now = std::chrono::steady_clock::now();
         if(std::chrono::duration_cast<std::chrono::milliseconds>(now-lastSecond).count()>=1000){
             std::cout << "[FPS]" << frames << std::endl;
@@ -273,14 +186,10 @@ void game(Game& _game) {
         
 
     }
-    _game.device.device.waitIdle();
+    render.close(_game.device);
 }
 
 int main(int argc, char const *argv[]){
-    time_t t;
-    time(&t);
-    srand(t);
-
     try{
         Game _game;
         game(_game);

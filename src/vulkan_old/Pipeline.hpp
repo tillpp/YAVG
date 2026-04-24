@@ -8,7 +8,6 @@
 
 class Pipeline
 {
-    std::vector<char> readFile(const std::filesystem::path& filename);
     [[nodiscard]] vk::raii::ShaderModule createShaderModule(
         Device& device,
         const std::vector<char>& code) const;

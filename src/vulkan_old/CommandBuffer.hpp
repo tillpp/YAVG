@@ -24,7 +24,7 @@ public:
     }
 
     //TODO: begin, end and transition_image_layout need a better place to live.
-    void begin(Swapchain& swapchain,uint32_t imageIndex,class DepthBuffer& depthBuffer);
+    void begin(Swapchain& swapchain,uint32_t imageIndex,class DepthBuffer* depthBuffer);
     void end(Swapchain& swapchain,uint32_t imageIndex);
 private: //helper
     void transition_image_layout(
