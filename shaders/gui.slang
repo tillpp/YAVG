@@ -21,7 +21,7 @@ struct VertexOutput {
 [shader("vertex")]
 VertexOutput vertMain(VSInput input,uint vid : SV_VertexID,uint iid :SV_InstanceID) {
     VertexOutput output;
-    output.sv_position = float4(float3(input.inPosition.x / 32 - 1.5, input.inPosition.z / 32 - 1.5, 0), 1.0);
+    output.sv_position = float4(float3(input.inPosition.x , input.inPosition.z , 0), 1.0);
     output.color = input.inColor;
     output.fragTexCoord = input.inTexCoord;
     return output;

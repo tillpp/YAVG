@@ -26,15 +26,30 @@
 #include "client/MeshWeaver.hpp"
 #include "FastNoiseLite.h"
 
-
+const std::vector<Vertex> vertices = {
+    {{0,   0,0.f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+    {{1.f, 0,0.f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+    {{1.f, 0,1.f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+    {{0,   0,1.f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}};
+const std::vector<uint16_t> indices = {
+    0, 3, 2, 2, 1, 0};
 
 class GuiSystem{
 public:
+    Buffer vertexBuffer, indexBuffer;
     Pipeline pipeline;
-    void create(Device& device,Swapchain& swapchain,Render& render,DescriptorSetLayout& dsLayout,std::filesystem::path projectBaseDir,DepthBuffer& depthBuffer){
+    void create(Device& device,CommandPool& pool,Swapchain& swapchain,Render& render,DescriptorSetLayout& dsLayout,std::filesystem::path projectBaseDir,DepthBuffer& depthBuffer){
         pipeline.create(device,projectBaseDir/"bin"/"gui.spv",
             "vertMain","fragMain",swapchain,dsLayout,depthBuffer,false
         );
+        vertexBuffer.createVertexBuffer(pool,vertices);
+        indexBuffer.createIndexBuffer(pool,indices);
+    }
+    void draw(CommandBuffer& buffer){
+        auto& commandBuffer = buffer.commandBuffer;
+        commandBuffer.bindVertexBuffers(0, *vertexBuffer.buffer, {0});
+        commandBuffer.bindIndexBuffer(*indexBuffer.buffer, 0, vk::IndexType::eUint16);
+        commandBuffer.drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0,0);
     }
 };
 struct Chunk2{
@@ -130,7 +145,7 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
     }
 
     GuiSystem gs;
-    gs.create(_game.device,_game.swapchain,render,dsLayout,projectBaseDir,depthBuffer);
+    gs.create(_game.device,_game.commandPool,_game.swapchain,render,dsLayout,projectBaseDir,depthBuffer);
 
     // TODO refactor the following in the future:
     auto recordCommandBuffer = [&](CommandBuffer& CB,uint32_t frameIndex,uint32_t imageIndex)
@@ -166,10 +181,10 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
             commandBuffer.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(_game.swapchain.swapChainExtent.width), static_cast<float>(_game.swapchain.swapChainExtent.height), 0.0f, 1.0f));
             commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), _game.swapchain.swapChainExtent));
             dsLayout.use(commandBuffer,render,pipeline);
-            chunk[1][1][1].draw(CB);
+            gs.draw(CB);
 
         }
-            
+        
         
         CB.endRendering(  _game.swapchain,imageIndex);
         // CB.beginRendering(_game.swapchain,imageIndex,nullptr);
