@@ -2,7 +2,7 @@
 #include <stb_image.h>
 #include "vulkan/Device.hpp"
 #include "Buffer.hpp"
-#include "CommandBuffer.hpp"
+#include "vulkan/CommandBuffer.hpp"
 
 //TODO learn more about ktx
 //TODO: try to reread https://docs.vulkan.org/tutorial/latest/06_Texture_mapping/00_Images.html#_layout_transitions , cause i didnt understand everything.

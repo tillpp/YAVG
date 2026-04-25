@@ -2,7 +2,7 @@
 #include "vulkan/Device.hpp"
 #include "vulkan/GraphicsQueue.hpp"
 #include "vulkan/CommandPool.hpp"
-#include "vulkan_old/CommandBuffer.hpp"
+#include "vulkan/CommandBuffer.hpp"
 #include "vulkan_old/DepthBuffer.hpp"
 
 

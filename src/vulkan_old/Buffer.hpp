@@ -2,7 +2,7 @@
 #include "vulkan/Device.hpp"
 #include <glm/glm.hpp>
 #include <array>
-#include "CommandBuffer.hpp"
+#include "vulkan/CommandBuffer.hpp"
 
 struct Vertex
 {

@@ -1,6 +1,7 @@
 #pragma once
 #include "vulkan/Window.hpp"
 #include "vulkan/Device.hpp"
+#include "vulkan/CommandBuffer.hpp"
 #include <limits>
 
 class Swapchain
@@ -18,6 +19,10 @@ public:
 
     void create(Window& window,Device& device);
     void recreate(Window& window,Device& device);
+
+    void beginRendering(CommandBuffer& commandBuffer,uint32_t imageIndex,class DepthBuffer* depthBuffer);
+    void endRendering(CommandBuffer& commandBuffer,uint32_t imageIndex);
+
 private:
     // choose surface settings
     static vk::SurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats);

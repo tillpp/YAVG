@@ -5,8 +5,8 @@
 #include "vulkan/ValidationLayer.hpp"
 #include "vulkan/GraphicsQueue.hpp"
 #include "vulkan/Device.hpp"
-#include "vulkan_old/Pipeline.hpp"
-#include "vulkan_old/CommandBuffer.hpp"
+#include "vulkan/Pipeline.hpp"
+#include "vulkan/CommandBuffer.hpp"
 #include "vulkan_old/DescriptorSetLayout.hpp"
 #include "vulkan_old/Render.hpp"
 #include "client/Camera.hpp"
@@ -151,9 +151,9 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
     // TODO refactor the following in the future:
     auto recordCommandBuffer = [&](CommandBuffer& CB,uint32_t frameIndex,uint32_t imageIndex)
     {
-        CB.begin(_game.swapchain,imageIndex);
-        CB.beginRendering(_game.swapchain,imageIndex,&depthBuffer);
-    
+        CB.begin();
+        _game.swapchain.beginRendering(CB,imageIndex,&depthBuffer);
+        
         float aspectRatio = static_cast<float>(_game.swapchain.swapChainExtent.width) / static_cast<float>(_game.swapchain.swapChainExtent.height);
 
         bool zoom = glfwGetKey(_game.window,GLFW_KEY_C) == GLFW_PRESS;
@@ -187,11 +187,8 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
         }
         
         
-        CB.endRendering(  _game.swapchain,imageIndex);
-        // CB.beginRendering(_game.swapchain,imageIndex,nullptr);
-
-        // CB.endRendering(  _game.swapchain,imageIndex);
-        CB.end(_game.swapchain,imageIndex);
+        _game.swapchain.endRendering(CB,imageIndex);
+        CB.end();
     };
 
 
