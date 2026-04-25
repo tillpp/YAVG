@@ -2,13 +2,12 @@
 #include <fstream>
 #include <filesystem>
 #include "vulkan/Swapchain.hpp"
-#include "VertexBuffer.hpp"
+#include "Buffer.hpp"
 #include "DepthBuffer.hpp"
 #include "UBO.hpp"
 
 class Pipeline
 {
-    std::vector<char> readFile(const std::filesystem::path& filename);
     [[nodiscard]] vk::raii::ShaderModule createShaderModule(
         Device& device,
         const std::vector<char>& code) const;
@@ -24,5 +23,5 @@ public:
         std::string entryFnFragment, 
         Swapchain& swapChain,
         class DescriptorSetLayout& dsLayout,
-        DepthBuffer& depthBuffer);
+        DepthBuffer& depthBuffer, bool depthTesting = true);
 };

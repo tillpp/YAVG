@@ -121,7 +121,7 @@ endif()
 
 # shaders
 function (add_slang_shader_target TARGET)
-  cmake_parse_arguments ("SHADER" "" "" "SOURCES" ${ARGN})
+  cmake_parse_arguments ("SHADER" "" "OUT" "SOURCES" ${ARGN})
   set (SHADERS_DIR ${CMAKE_CURRENT_LIST_DIR}/shaders)
   set (ENTRY_POINTS -entry vertMain -entry fragMain)
   add_custom_command (
@@ -129,19 +129,21 @@ function (add_slang_shader_target TARGET)
           COMMAND ${CMAKE_COMMAND} -E make_directory ${SHADERS_DIR}
   )
   add_custom_command (
-          OUTPUT  ${BIN_OUTPUT_DIRECTORY}/slang.spv
-          COMMAND ${CMAKE_CROSSCOMPILING_EMULATOR} ${SLANGC_EXECUTABLE} ${SHADER_SOURCES} -target spirv -profile spirv_1_3 -emit-spirv-directly -fvk-use-entrypoint-name ${ENTRY_POINTS} -o ${BIN_OUTPUT_DIRECTORY}/slang.spv
+          OUTPUT  ${BIN_OUTPUT_DIRECTORY}/${SHADER_OUT}.spv
+          COMMAND ${CMAKE_CROSSCOMPILING_EMULATOR} ${SLANGC_EXECUTABLE} ${SHADER_SOURCES} -target spirv -profile spirv_1_3 -emit-spirv-directly -fvk-use-entrypoint-name ${ENTRY_POINTS} -o ${BIN_OUTPUT_DIRECTORY}/${SHADER_OUT}.spv
           WORKING_DIRECTORY ${SHADERS_DIR}
           DEPENDS ${SHADERS_DIR} ${SHADER_SOURCES} ${slang}
           COMMENT "Compiling Slang Shaders"
           VERBATIM
   )
-  add_custom_target (${TARGET} DEPENDS ${BIN_OUTPUT_DIRECTORY}/slang.spv)
+  add_custom_target (${TARGET} DEPENDS ${BIN_OUTPUT_DIRECTORY}/${SHADER_OUT}.spv)
 endfunction()
 
 
 file(GLOB_RECURSE SHADER_SLANG_SOURCES CONFIGURE_DEPENDS
-       ${PROJECT_SOURCE_DIR}/shaders/**.slang)
+       ${PROJECT_SOURCE_DIR}/shaders/shader.slang)
+file(GLOB_RECURSE SHADER_SLANG_SOURCES_GUI CONFIGURE_DEPENDS
+       ${PROJECT_SOURCE_DIR}/shaders/gui.slang)
 
 if(WIN32)
   set(SLANGC_EXECUTABLE "${slang_SOURCE_DIR}/bin/slangc.exe")
@@ -149,8 +151,12 @@ else()
   set(SLANGC_EXECUTABLE "${vulkan_SOURCE_DIR}/x86_64/bin/slangc")
 endif(WIN32)
 
-add_slang_shader_target( shaders SOURCES ${SHADER_SLANG_SOURCES})
+add_slang_shader_target( shaders SOURCES ${SHADER_SLANG_SOURCES} OUT slang)
+add_slang_shader_target( shaders_gui SOURCES ${SHADER_SLANG_SOURCES_GUI} OUT gui)
 add_dependencies(YAVOG shaders)
+add_dependencies(YAVOG shaders_gui)
+
+
 
 if(WIN32)
     add_custom_command(TARGET YAVOG POST_BUILD

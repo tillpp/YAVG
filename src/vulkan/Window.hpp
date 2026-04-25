@@ -24,6 +24,10 @@ public:
     
     operator GLFWwindow*();
     
-    bool toggleFullscreen();
+    void toggleFullscreen();
+    void toggleMouseGrab();
+
     bool framebufferResized = false;
+    bool grabMouse = true;
 };
+            

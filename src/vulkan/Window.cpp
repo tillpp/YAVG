@@ -62,9 +62,13 @@ void Window::create(Instance& instance,int width, int height, const char *title)
         auto self = (Window*)glfwGetWindowUserPointer(window);
         if(key == GLFW_KEY_F11 && action == GLFW_PRESS){
             self->toggleFullscreen();
+        }else if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS){
+            self->toggleMouseGrab();
         }
-    });
 
+
+    });
+    toggleMouseGrab();
 }
 void Window::close(){
     glfwDestroyWindow(window);
@@ -76,16 +80,24 @@ bool Window::update(){
     framebufferResized = false;
     return !glfwWindowShouldClose(window);
 }
-bool Window::toggleFullscreen(){
+void Window::toggleFullscreen(){
     int count;
     auto monitors =  glfwGetMonitors(&count);
     auto monitor = monitors[0];
-    const GLFWvidmode * mode = glfwGetVideoMode(monitor);
     if(glfwGetWindowMonitor(window) == nullptr){
+        const GLFWvidmode * mode = glfwGetVideoMode(monitor);
         glfwGetWindowPos(window,&beforeFullscreen.xpos,&beforeFullscreen.xpos);
         glfwGetWindowSize(window,&beforeFullscreen.sizex,&beforeFullscreen.sizey);
         glfwSetWindowMonitor(window,monitor,0,0,mode->width,mode->height,0);
+        return;
     }else{
         glfwSetWindowMonitor(window,nullptr,beforeFullscreen.xpos,beforeFullscreen.ypos,beforeFullscreen.sizex,beforeFullscreen.sizey,0);
     }
+}
+void Window::toggleMouseGrab(){
+    grabMouse =! grabMouse;
+    if(grabMouse)  
+        glfwSetInputMode(window,GLFW_CURSOR,GLFW_CURSOR_DISABLED);
+    else    
+        glfwSetInputMode(window,GLFW_CURSOR,GLFW_CURSOR_NORMAL);
 }

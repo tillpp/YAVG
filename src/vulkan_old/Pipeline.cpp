@@ -1,19 +1,8 @@
 #include "Pipeline.hpp"
 #include "DescriptorSetLayout.hpp"
+#include "Parser/File.hpp"
 
-std::vector<char> Pipeline::readFile(const std::filesystem::path& filename) {
-    std::ifstream file(filename, std::ios::ate | std::ios::binary);
-    if (!file.is_open()) {
-        throw std::runtime_error("failed to open file!");
-    }
-    std::vector<char> buffer(file.tellg());
-    file.seekg(0, std::ios::beg);
-    file.read(buffer.data(), static_cast<std::streamsize>(buffer.size()));
-    file.close();
-
-    return buffer;
-}
- [[nodiscard]] vk::raii::ShaderModule Pipeline::createShaderModule(
+[[nodiscard]] vk::raii::ShaderModule Pipeline::createShaderModule(
     Device& device,
     const std::vector<char>& code) const{
 
@@ -28,7 +17,7 @@ void Pipeline::create(
     std::string entryFnFragment, 
     Swapchain& swapChain,
     DescriptorSetLayout& dsLayout,
-    DepthBuffer& depthBuffer) {
+    DepthBuffer& depthBuffer,bool depthTesting) {
 
     // shader
     vk::raii::ShaderModule shaderModule = createShaderModule(device,readFile(shaderFile));
@@ -126,19 +115,28 @@ void Pipeline::create(
 
     //enable depthtesting
     vk::PipelineDepthStencilStateCreateInfo depthStencil{
-        .depthTestEnable       = vk::True,
-        .depthWriteEnable      = vk::True,
-        .depthCompareOp        = vk::CompareOp::eLess,
         .depthBoundsTestEnable = vk::False,
         .stencilTestEnable     = vk::False
     };
+    if(depthTesting){
+        depthStencil.depthTestEnable       = vk::True;
+        depthStencil.depthWriteEnable      = vk::True;
+        depthStencil.depthCompareOp        = vk::CompareOp::eLess;
+    }else{
+        depthStencil.depthTestEnable       = vk::False;
+        depthStencil.depthWriteEnable      = vk::False;
+        depthStencil.depthCompareOp        = vk::CompareOp::eAlways;
+
+    }
+
     
     // dynamic rendering
     vk::PipelineRenderingCreateInfo pipelineRenderingCreateInfo{ 
         .colorAttachmentCount = 1, 
         .pColorAttachmentFormats = &swapChain.surfaceFormat.format, 
-        .depthAttachmentFormat = depthBuffer.depthFormat};
-    
+        .depthAttachmentFormat = depthBuffer.depthFormat,
+    };
+
     // everything together
     vk::GraphicsPipelineCreateInfo  graphicsPipelineCreateInfo{
         .stageCount          = 2,

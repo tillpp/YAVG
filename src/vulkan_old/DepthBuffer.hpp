@@ -32,11 +32,22 @@ class DepthBuffer
                 vk::FormatFeatureFlagBits::eDepthStencilAttachment
             );
     }
+    
     Image image;
     vk::Format depthFormat;
     void create(CommandPool& pool,Swapchain& swapchain){
         depthFormat = findDepthFormat(pool.getDevice());
-        image.createImage(pool,swapchain.swapChainExtent.width, swapchain.swapChainExtent.height, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal);
-        image.imageView = image.createImageView(pool.getDevice(), depthFormat, vk::ImageAspectFlagBits::eDepth);
+        image.createImage(pool,
+            swapchain.swapChainExtent.width, 
+            swapchain.swapChainExtent.height, 
+            depthFormat, 
+            vk::ImageTiling::eOptimal, 
+            vk::ImageUsageFlagBits::eDepthStencilAttachment, 
+            vk::MemoryPropertyFlagBits::eDeviceLocal
+        );
+        image.imageView = image.createImageView(pool.getDevice(), 
+            depthFormat, 
+            vk::ImageAspectFlagBits::eDepth
+        );
     }
 };

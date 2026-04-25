@@ -1,5 +1,6 @@
 #pragma once
 #include "vulkan/Header.hpp"
+#include "vulkan_old/Render.hpp"
 
 class DescriptorSetLayout
 {
@@ -7,10 +8,11 @@ public:
     void create(Device& device,std::vector<vk::DescriptorSetLayoutBinding> bindings,uint32_t MAX_FRAMES_IN_FLIGHT, UBO& ubo, Image& image){
         vk::DescriptorSetLayoutCreateInfo layoutInfo{
             .bindingCount = (uint32_t)bindings.size(), 
-            .pBindings = bindings.data()
+            .pBindings = bindings.data(),
         };
         descriptorSetLayout = vk::raii::DescriptorSetLayout(device.device, layoutInfo);
 
+        //pool creation
         {
             std::array poolSize {
                 vk::DescriptorPoolSize( vk::DescriptorType::eUniformBuffer, MAX_FRAMES_IN_FLIGHT),
@@ -20,13 +22,17 @@ public:
                 .flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
                 .maxSets = MAX_FRAMES_IN_FLIGHT,
                 .poolSizeCount = poolSize.size(),
-                .pPoolSizes = poolSize.data()
+                .pPoolSizes = poolSize.data(),
             };
             descriptorPool = vk::raii::DescriptorPool(device.device, poolInfo);
         }
         {
             std::vector<vk::DescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, *descriptorSetLayout);
-            vk::DescriptorSetAllocateInfo allocInfo{ .descriptorPool = descriptorPool, .descriptorSetCount = static_cast<uint32_t>(layouts.size()), .pSetLayouts = layouts.data() };
+            vk::DescriptorSetAllocateInfo allocInfo{ 
+                .descriptorPool = descriptorPool, 
+                .descriptorSetCount = static_cast<uint32_t>(layouts.size()), 
+                .pSetLayouts = layouts.data() 
+            };
 
             descriptorSets.clear();
             descriptorSets = device.device.allocateDescriptorSets(allocInfo);
@@ -50,4 +56,7 @@ public:
     vk::raii::DescriptorPool descriptorPool = nullptr;
     std::vector<vk::raii::DescriptorSet> descriptorSets;
     
+    void use(vk::raii::CommandBuffer& commandBuffer,Render& render, Pipeline& pipeline){
+        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline.pipelineLayout, 0, *descriptorSets[render.getFrameIndex()], nullptr);
+    }
 };

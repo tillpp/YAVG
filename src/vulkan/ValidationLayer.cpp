@@ -3,13 +3,8 @@
 
 ValidationLayer::ValidationLayer(InstanceSettings* settings)
 {
-#ifdef WIN32 //fck windows
-    enableValidationLayers = false;
-#endif
     if (enableValidationLayers)
     {
-        settings->layers.insert(settings->layers.end(),validationLayers.begin(), validationLayers.end());
-        
         // check support
         vk::raii::Context  context;
         auto layerProperties = context.enumerateInstanceLayerProperties();
@@ -20,8 +15,13 @@ ValidationLayer::ValidationLayer(InstanceSettings* settings)
         });
         if (unsupportedLayerIt != validationLayers.end())
         {
-            throw std::runtime_error("Required layer not supported: " + std::string(*unsupportedLayerIt));
+            return;
+            //throw std::runtime_error("Required layer not supported: " + std::string(*unsupportedLayerIt));
         }
+        std::cout << "ValidationLayer available and active!" << std::endl;
+        settings->layers.insert(settings->layers.end(),validationLayers.begin(), validationLayers.end());
+        
+        
     }
 
 }
