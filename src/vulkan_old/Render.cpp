@@ -51,7 +51,7 @@ void Render::draw(
 			throw std::runtime_error("failed to wait for fence!");
 		}
     auto [result, imageIndex] = swapchain.swapChain.acquireNextImage(UINT64_MAX, *presentCompleteSemaphores[frameIndex], nullptr);
-    if(result == vk::Result::eErrorOutOfDateKHR){
+    if(result == vk::Result::eErrorOutOfDateKHR || window.framebufferResized){
         recreateSwapChain(window,pool,swapchain,depthBuffer);
         return;
     }
