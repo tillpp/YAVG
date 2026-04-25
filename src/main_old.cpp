@@ -217,7 +217,7 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
         float delta;
         {
             {
-                const int FPSLimit = 100;
+                const int FPSLimit = 120;
                 auto now = std::chrono::steady_clock::now();
                 float delta = std::chrono::duration<float, std::chrono::seconds::period>(now - lastFrame).count();
                 if(delta < 1.f/FPSLimit){
