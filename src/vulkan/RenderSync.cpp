@@ -1,7 +1,7 @@
 
-#include "Render.hpp"
+#include "RenderSync.hpp"
 
-void Render::create(CommandPool& pool,Swapchain& swapchain){
+void RenderSync::create(CommandPool& pool,Swapchain& swapchain){
     auto& device = pool.getDevice();
     assert(presentCompleteSemaphores.empty() && renderFinishedSemaphores.empty() && inFlightFences.empty());
     for (size_t i = 0; i < swapchain.images.size(); i++)
@@ -16,11 +16,19 @@ void Render::create(CommandPool& pool,Swapchain& swapchain){
     }
     
 }
-void Render::close(Device& device)
-{
+void RenderSync::close(Device& device){
     device.device.waitIdle();
 }
-void Render::recreateSwapChain(Window& window,CommandPool& pool,Swapchain& swapchain,DepthBuffer* depthBuffer){
+
+
+uint32_t RenderSync::getFrameIndex()const{
+    return frameIndex;
+}
+CommandBuffer& RenderSync::getCommandBuffer(){
+    return commandBuffers[frameIndex];
+}
+
+void RenderSync::recreateSwapChain(Window& window,CommandPool& pool,Swapchain& swapchain,DepthBuffer* depthBuffer){
     int width = 0, height = 0;
     auto& device = pool.getDevice();
     glfwGetFramebufferSize(window, &width, &height);
@@ -35,13 +43,13 @@ void Render::recreateSwapChain(Window& window,CommandPool& pool,Swapchain& swapc
         depthBuffer->create(pool,swapchain);
 }
 
-void Render::draw(
-    Window& window,
-    Swapchain& swapchain,
-    CommandPool& pool,
-    DepthBuffer* depthBuffer, 
-    std::function<void(CommandBuffer& commandBuffer,uint32_t frameIndex,uint32_t imageIndex)> recordCommandBuffer){
-    
+bool RenderSync::begin(
+        Window& window,
+        Swapchain& swapchain,
+        CommandPool& pool,
+        DepthBuffer* depthBuffer,
+        ImageIndex& imageIndex){
+
     auto& queue = pool.getQueue();
     auto& device = pool.getDevice();
 
@@ -50,11 +58,11 @@ void Render::draw(
 	{
 		throw std::runtime_error("failed to wait for fence!");
 	}
-    auto [result, imageIndex] = swapchain.swapChain.acquireNextImage(UINT64_MAX, *presentCompleteSemaphores[frameIndex], nullptr);
+    auto [result, _imageIndex] = swapchain.swapChain.acquireNextImage(UINT64_MAX, *presentCompleteSemaphores[frameIndex], nullptr);
     if(result == vk::Result::eErrorOutOfDateKHR){
         
         recreateSwapChain(window,pool,swapchain,depthBuffer);
-        return;
+        return false;
     }
     else if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR)
     {
@@ -64,9 +72,20 @@ void Render::draw(
     
     device.device.resetFences(*inFlightFences[frameIndex]);
 	commandBuffers[frameIndex].commandBuffer.reset();
+
+    imageIndex = _imageIndex;
+    return true;
+}
+void RenderSync::end(
+    Window& window,
+    Swapchain& swapchain,
+    CommandPool& pool,
+    DepthBuffer* depthBuffer,
+    ImageIndex imageIndex){
     
-    recordCommandBuffer(commandBuffers[frameIndex],frameIndex,imageIndex);
-    
+    auto& queue = pool.getQueue();
+    auto& device = pool.getDevice();
+
     vk::PipelineStageFlags waitDestinationStageMask( vk::PipelineStageFlagBits::eColorAttachmentOutput );
     const vk::SubmitInfo   submitInfo{
         .waitSemaphoreCount   = 1,
@@ -86,7 +105,7 @@ void Render::draw(
         .swapchainCount     = 1,
         .pSwapchains        = &*swapchain.swapChain,
         .pImageIndices      = &imageIndex};
-    result = queue.presentKHR(presentInfoKHR);
+    auto result = queue.presentKHR(presentInfoKHR);
     if ((result == vk::Result::eSuboptimalKHR) || (result == vk::Result::eErrorOutOfDateKHR)||window.framebufferResized)
     {
         recreateSwapChain(window,pool,swapchain,depthBuffer);
@@ -98,7 +117,4 @@ void Render::draw(
     }
     
     frameIndex = (frameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
-}
-uint32_t Render::getFrameIndex()const{
-    return frameIndex;
 }

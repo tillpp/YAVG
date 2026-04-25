@@ -5,8 +5,8 @@
 #include "vulkan/CommandBuffer.hpp"
 #include "vulkan_old/DepthBuffer.hpp"
 
-
-class Render
+typedef uint32_t ImageIndex;
+class RenderSync
 {
     uint32_t frameIndex = 0;
     
@@ -17,15 +17,24 @@ class Render
     
 public:
     uint32_t getFrameIndex()const;
+    CommandBuffer& getCommandBuffer();
+    
     const int MAX_FRAMES_IN_FLIGHT = 2;
     
     void create(CommandPool& pool,Swapchain& swapchain);
     void close(Device& device);
     void recreateSwapChain(Window& window,CommandPool& pool,Swapchain& swapchain,DepthBuffer* depthBuffer);
-    void draw(
+
+    bool begin(
         Window& window,
         Swapchain& swapchain,
         CommandPool& pool,
-        DepthBuffer* depthBuffer, 
-        std::function<void(CommandBuffer& commandBuffer,uint32_t frameIndex,uint32_t imageIndex)> recordCommandBuffer);
+        DepthBuffer* depthBuffer,
+        ImageIndex& imageIndex);
+    void end(
+        Window& window,
+        Swapchain& swapchain,
+        CommandPool& pool,
+        DepthBuffer* depthBuffer,
+        ImageIndex imageIndex);
 };

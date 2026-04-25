@@ -8,7 +8,7 @@
 #include "vulkan/Pipeline.hpp"
 #include "vulkan/CommandBuffer.hpp"
 #include "vulkan_old/DescriptorSetLayout.hpp"
-#include "vulkan_old/Render.hpp"
+#include "vulkan/RenderSync.hpp"
 #include "client/Camera.hpp"
 #include "server/Region.hpp"
 #include <thread>
@@ -39,7 +39,7 @@ class GuiSystem{
 public:
     Buffer vertexBuffer, indexBuffer;
     Pipeline pipeline;
-    void create(Device& device,CommandPool& pool,Swapchain& swapchain,Render& render,DescriptorSetLayout& dsLayout,std::filesystem::path projectBaseDir,DepthBuffer& depthBuffer){
+    void create(Device& device,CommandPool& pool,Swapchain& swapchain,RenderSync& render,DescriptorSetLayout& dsLayout,std::filesystem::path projectBaseDir,DepthBuffer& depthBuffer){
         pipeline.create(device,projectBaseDir/"bin"/"gui.spv",
             "vertMain","fragMain",swapchain,dsLayout,depthBuffer,false
         );
@@ -109,7 +109,7 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
 
 
 
-    Render render;
+    RenderSync render;
     Image image;
     UBO ubo;
     DescriptorSetLayout dsLayout;
@@ -202,15 +202,27 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
 
     while(_game.window.update()){
         glfwPollEvents();
-        render.draw(_game.window,_game.swapchain,_game.commandPool,&depthBuffer,recordCommandBuffer);   
+        //drawing
+        {
+            ImageIndex imageIndex;
+            if(!render.begin(_game.window,_game.swapchain,_game.commandPool,&depthBuffer,imageIndex))
+                continue;
+            auto frameIndex = render.getFrameIndex();
+            auto& CB        = render.getCommandBuffer();
+            
+            recordCommandBuffer(CB,frameIndex,imageIndex);
+            render.end(_game.window,_game.swapchain,_game.commandPool,&depthBuffer,imageIndex);
+        }
+        
+        //FRAMERATE STUFF
         auto now = std::chrono::steady_clock::now();
         if(std::chrono::duration_cast<std::chrono::milliseconds>(now-lastSecond).count()>=1000){
-            std::cout << "[FSP]" << frames << std::endl;
+            float frameTime = std::chrono::duration<float, std::chrono::microseconds::period>(now - lastFrame).count();
+            std::cout << "[FSP]" << frames <<" "<< frameTime <<"µs"<< std::endl;
             frames = 0;
             lastSecond = now;
         }
         frames++;
-
         float delta;
         {
             {

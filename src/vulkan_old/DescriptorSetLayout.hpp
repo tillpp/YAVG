@@ -1,6 +1,6 @@
 #pragma once
 #include "vulkan/Header.hpp"
-#include "vulkan_old/Render.hpp"
+#include "vulkan/RenderSync.hpp"
 
 class DescriptorSetLayout
 {
@@ -56,7 +56,7 @@ public:
     vk::raii::DescriptorPool descriptorPool = nullptr;
     std::vector<vk::raii::DescriptorSet> descriptorSets;
     
-    void use(vk::raii::CommandBuffer& commandBuffer,Render& render, Pipeline& pipeline){
+    void use(vk::raii::CommandBuffer& commandBuffer,RenderSync& render, Pipeline& pipeline){
         commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline.pipelineLayout, 0, *descriptorSets[render.getFrameIndex()], nullptr);
     }
 };
