@@ -46,12 +46,12 @@ void Render::draw(
     auto& device = pool.getDevice();
 
     auto fenceResult = device.device.waitForFences(*inFlightFences[frameIndex], vk::True, UINT64_MAX);
-		if (fenceResult != vk::Result::eSuccess)
-		{
-			throw std::runtime_error("failed to wait for fence!");
-		}
+	if (fenceResult != vk::Result::eSuccess)
+	{
+		throw std::runtime_error("failed to wait for fence!");
+	}
     auto [result, imageIndex] = swapchain.swapChain.acquireNextImage(UINT64_MAX, *presentCompleteSemaphores[frameIndex], nullptr);
-    if(result == vk::Result::eErrorOutOfDateKHR || window.framebufferResized){
+    if(result == vk::Result::eErrorOutOfDateKHR){
         
         recreateSwapChain(window,pool,swapchain,depthBuffer);
         return;
@@ -87,7 +87,7 @@ void Render::draw(
         .pSwapchains        = &*swapchain.swapChain,
         .pImageIndices      = &imageIndex};
     result = queue.presentKHR(presentInfoKHR);
-    if ((result == vk::Result::eSuboptimalKHR) || (result == vk::Result::eErrorOutOfDateKHR))
+    if ((result == vk::Result::eSuboptimalKHR) || (result == vk::Result::eErrorOutOfDateKHR)||window.framebufferResized)
     {
         recreateSwapChain(window,pool,swapchain,depthBuffer);
     }

@@ -11,6 +11,7 @@
 #include "vulkan_old/Render.hpp"
 #include "client/Camera.hpp"
 #include "server/Region.hpp"
+#include <thread>
 
 #include "client/Game.hpp"
 #include <array>
@@ -60,7 +61,7 @@ struct Chunk2{
     void create(Device& device,CommandPool& pool,FastNoiseLite& noise,size_t xOffset,size_t yOffset,size_t zOffset){
         MeshWeaver mw;
         {
-            auto t1 = std::chrono::high_resolution_clock::now();
+            auto t1 = std::chrono::steady_clock::now();
             char* data = new char[33*33*33];
             for (size_t x = 0; x < 33; x++){
                 for (size_t y = 0; y < 33; y++){
@@ -73,7 +74,7 @@ struct Chunk2{
                 }
             }
             
-            auto t2 =  std::chrono::high_resolution_clock::now();
+            auto t2 =  std::chrono::steady_clock::now();
             mw.create(data,xOffset,yOffset,zOffset);
             std::cout <<"mesh generation time:"<< std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count()<<"µs" <<std::endl;
         }
@@ -200,7 +201,7 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
     //FPS counter
     auto lastSecond = std::chrono::steady_clock::now();
     size_t frames = 0;
-    auto lastFrame = std::chrono::high_resolution_clock::now();
+    auto lastFrame = std::chrono::steady_clock::now();
 
     while(_game.window.update()){
         glfwPollEvents();
@@ -215,7 +216,17 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
 
         float delta;
         {
-            auto currentTime = std::chrono::high_resolution_clock::now();
+            {
+                const int FPSLimit = 100;
+                auto now = std::chrono::steady_clock::now();
+                float delta = std::chrono::duration<float, std::chrono::seconds::period>(now - lastFrame).count();
+                if(delta < 1.f/FPSLimit){
+                    float waittime = 1.f/FPSLimit-delta;
+                    std::this_thread::sleep_for(std::chrono::milliseconds((int)(waittime*1000)));
+                }
+            }
+
+            auto currentTime = std::chrono::steady_clock::now();
             delta = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - lastFrame).count();
             lastFrame = currentTime;
         }
@@ -225,7 +236,6 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
             camera.update(_game.window,delta);   
         }
         
-
     }
     render.close(_game.device);
 }
