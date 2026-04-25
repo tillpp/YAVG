@@ -1,7 +1,7 @@
 #pragma once
 #include <stb_image.h>
 #include "vulkan/Device.hpp"
-#include "VertexBuffer.hpp"
+#include "Buffer.hpp"
 #include "CommandBuffer.hpp"
 
 //TODO learn more about ktx

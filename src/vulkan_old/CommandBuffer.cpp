@@ -7,8 +7,16 @@ vk::CommandBufferAllocateInfo allocInfo{ .commandPool = *pool.commandPool, .leve
 
 commandBuffer = std::move(vk::raii::CommandBuffers(pool.getDevice().device, allocInfo).front());
 }
-void CommandBuffer::begin(Swapchain& swapchain,uint32_t imageIndex,DepthBuffer* depthBuffer){
+void CommandBuffer::begin(Swapchain& swapchain,uint32_t imageIndex){
     commandBuffer.begin({});
+    
+}
+void CommandBuffer::end(Swapchain& swapchain,uint32_t imageIndex){
+    commandBuffer.end();
+}
+
+void CommandBuffer::beginRendering(Swapchain& swapchain,uint32_t imageIndex,DepthBuffer* depthBuffer){
+    
     // Before starting rendering, transition the swapchain image to vk::ImageLayout::eColorAttachmentOptimal
     transition_image_layout(
         swapchain.images[imageIndex],
@@ -65,7 +73,7 @@ void CommandBuffer::begin(Swapchain& swapchain,uint32_t imageIndex,DepthBuffer* 
     }
     commandBuffer.beginRendering(renderingInfo);
 }
-void CommandBuffer::end(Swapchain& swapchain,uint32_t imageIndex){
+void CommandBuffer::endRendering(Swapchain& swapchain,uint32_t imageIndex){
     commandBuffer.endRendering();
 
     // After rendering, transition the swapchain image to vk::ImageLayout::ePresentSrcKHR
@@ -79,7 +87,7 @@ void CommandBuffer::end(Swapchain& swapchain,uint32_t imageIndex){
         vk::PipelineStageFlagBits2::eBottomOfPipe,               // dstStage
         vk::ImageAspectFlagBits::eColor
     );
-    commandBuffer.end();
+
 }
 void CommandBuffer::transition_image_layout(
         const vk::Image& image,

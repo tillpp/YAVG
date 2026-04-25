@@ -52,6 +52,7 @@ void Render::draw(
 		}
     auto [result, imageIndex] = swapchain.swapChain.acquireNextImage(UINT64_MAX, *presentCompleteSemaphores[frameIndex], nullptr);
     if(result == vk::Result::eErrorOutOfDateKHR || window.framebufferResized){
+        
         recreateSwapChain(window,pool,swapchain,depthBuffer);
         return;
     }
@@ -62,11 +63,9 @@ void Render::draw(
     }
     
     device.device.resetFences(*inFlightFences[frameIndex]);
-		commandBuffers[frameIndex].commandBuffer.reset();
+	commandBuffers[frameIndex].commandBuffer.reset();
     
-    commandBuffers[frameIndex].begin(swapchain,imageIndex,depthBuffer);
     recordCommandBuffer(commandBuffers[frameIndex],frameIndex,imageIndex);
-    commandBuffers[frameIndex].end(swapchain,imageIndex);
     
     vk::PipelineStageFlags waitDestinationStageMask( vk::PipelineStageFlagBits::eColorAttachmentOutput );
     const vk::SubmitInfo   submitInfo{

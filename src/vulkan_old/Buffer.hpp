@@ -113,9 +113,3 @@ public:
 //TODO add a parameter in the pipeline to add VertexBuffer.
 //TODO inherit Buffer privately.
 //TODO: have IndexBuffer
-class VertexBuffer:public Buffer
-{
-public:
-    
-};
-

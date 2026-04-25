@@ -17,7 +17,7 @@ void Pipeline::create(
     std::string entryFnFragment, 
     Swapchain& swapChain,
     DescriptorSetLayout& dsLayout,
-    DepthBuffer& depthBuffer) {
+    DepthBuffer& depthBuffer,bool depthTesting) {
 
     // shader
     vk::raii::ShaderModule shaderModule = createShaderModule(device,readFile(shaderFile));
@@ -115,19 +115,28 @@ void Pipeline::create(
 
     //enable depthtesting
     vk::PipelineDepthStencilStateCreateInfo depthStencil{
-        .depthTestEnable       = vk::True,
-        .depthWriteEnable      = vk::True,
-        .depthCompareOp        = vk::CompareOp::eLess,
         .depthBoundsTestEnable = vk::False,
         .stencilTestEnable     = vk::False
     };
+    if(depthTesting){
+        depthStencil.depthTestEnable       = vk::True;
+        depthStencil.depthWriteEnable      = vk::True;
+        depthStencil.depthCompareOp        = vk::CompareOp::eLess;
+    }else{
+        depthStencil.depthTestEnable       = vk::False;
+        depthStencil.depthWriteEnable      = vk::False;
+        depthStencil.depthCompareOp        = vk::CompareOp::eAlways;
+
+    }
+
     
     // dynamic rendering
     vk::PipelineRenderingCreateInfo pipelineRenderingCreateInfo{ 
         .colorAttachmentCount = 1, 
         .pColorAttachmentFormats = &swapChain.surfaceFormat.format, 
-        .depthAttachmentFormat = depthBuffer.depthFormat};
-    
+        .depthAttachmentFormat = depthBuffer.depthFormat,
+    };
+
     // everything together
     vk::GraphicsPipelineCreateInfo  graphicsPipelineCreateInfo{
         .stageCount          = 2,

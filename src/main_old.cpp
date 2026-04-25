@@ -27,6 +27,16 @@
 #include "FastNoiseLite.h"
 
 
+
+class GuiSystem{
+public:
+    Pipeline pipeline;
+    void create(Device& device,Swapchain& swapchain,Render& render,DescriptorSetLayout& dsLayout,std::filesystem::path projectBaseDir,DepthBuffer& depthBuffer){
+        pipeline.create(device,projectBaseDir/"bin"/"gui.spv",
+            "vertMain","fragMain",swapchain,dsLayout,depthBuffer,false
+        );
+    }
+};
 struct Chunk2{
     Buffer vertexBuffer,indexBuffer;
     std::vector<Vertex> vertices;
@@ -88,7 +98,7 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
     UBO ubo;
     DescriptorSetLayout dsLayout;
     Camera camera;
-    DepthBuffer dephBuffer;
+    DepthBuffer depthBuffer;
     Pipeline pipeline;
     
     render.create(_game.commandPool,_game.swapchain);
@@ -102,11 +112,11 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
         render.MAX_FRAMES_IN_FLIGHT,
         ubo,image
     );
-    dephBuffer.create(_game.commandPool,_game.swapchain);
+    depthBuffer.create(_game.commandPool,_game.swapchain);
     pipeline.create(_game.device,
         projectBaseDir/"bin"/"slang.spv",
         "vertMain","fragMain",
-        _game.swapchain, dsLayout,dephBuffer);
+        _game.swapchain, dsLayout,depthBuffer);
 
     const size_t range = 5;
     Chunk2 chunk[range][range][range];
@@ -119,9 +129,15 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
         
     }
 
+    GuiSystem gs;
+    gs.create(_game.device,_game.swapchain,render,dsLayout,projectBaseDir,depthBuffer);
+
     // TODO refactor the following in the future:
     auto recordCommandBuffer = [&](CommandBuffer& CB,uint32_t frameIndex,uint32_t imageIndex)
     {
+        CB.begin(_game.swapchain,imageIndex);
+        CB.beginRendering(_game.swapchain,imageIndex,&depthBuffer);
+    
         float aspectRatio = static_cast<float>(_game.swapchain.swapChainExtent.width) / static_cast<float>(_game.swapchain.swapChainExtent.height);
 
         bool zoom = glfwGetKey(_game.window,GLFW_KEY_C) == GLFW_PRESS;
@@ -145,6 +161,21 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
                 }
             }
         }
+        {
+            commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *gs.pipeline.graphicsPipeline);
+            commandBuffer.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(_game.swapchain.swapChainExtent.width), static_cast<float>(_game.swapchain.swapChainExtent.height), 0.0f, 1.0f));
+            commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), _game.swapchain.swapChainExtent));
+            dsLayout.use(commandBuffer,render,pipeline);
+            chunk[1][1][1].draw(CB);
+
+        }
+            
+        
+        CB.endRendering(  _game.swapchain,imageIndex);
+        // CB.beginRendering(_game.swapchain,imageIndex,nullptr);
+
+        // CB.endRendering(  _game.swapchain,imageIndex);
+        CB.end(_game.swapchain,imageIndex);
     };
 
 
@@ -158,7 +189,7 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
 
     while(_game.window.update()){
         glfwPollEvents();
-        render.draw(_game.window,_game.swapchain,_game.commandPool,&dephBuffer,recordCommandBuffer);   
+        render.draw(_game.window,_game.swapchain,_game.commandPool,&depthBuffer,recordCommandBuffer);   
         auto now = std::chrono::steady_clock::now();
         if(std::chrono::duration_cast<std::chrono::milliseconds>(now-lastSecond).count()>=1000){
             std::cout << "[FSP]" << frames << std::endl;

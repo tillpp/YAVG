@@ -2,7 +2,7 @@
 #include <fstream>
 #include <filesystem>
 #include "vulkan/Swapchain.hpp"
-#include "VertexBuffer.hpp"
+#include "Buffer.hpp"
 #include "DepthBuffer.hpp"
 #include "UBO.hpp"
 
@@ -23,5 +23,5 @@ public:
         std::string entryFnFragment, 
         Swapchain& swapChain,
         class DescriptorSetLayout& dsLayout,
-        DepthBuffer& depthBuffer);
+        DepthBuffer& depthBuffer, bool depthTesting = true);
 };
