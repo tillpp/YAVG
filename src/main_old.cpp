@@ -126,7 +126,7 @@ void game(Game& _game) {
 
         bool zoom = glfwGetKey(_game.window,GLFW_KEY_C) == GLFW_PRESS;
         ubo.updateUniformBuffer(frameIndex,aspectRatio, zoom,camera.pos,camera.forward);
-        
+
         auto& commandBuffer = CB.commandBuffer;
         {
             commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline.graphicsPipeline);
@@ -161,7 +161,7 @@ void game(Game& _game) {
         render.draw(_game.window,_game.swapchain,_game.commandPool,&dephBuffer,recordCommandBuffer);   
         auto now = std::chrono::steady_clock::now();
         if(std::chrono::duration_cast<std::chrono::milliseconds>(now-lastSecond).count()>=1000){
-            std::cout << "[FPS]" << frames << std::endl;
+            std::cout << "[FSP]" << frames << std::endl;
             frames = 0;
             lastSecond = now;
         }
