@@ -69,7 +69,7 @@ struct Chunk2{
         }
     }
 };
-void game(Game& _game) {
+void game(Game& _game,std::filesystem::path projectBaseDir) {
     time_t t;
     time(&t);
     srand(t);
@@ -92,7 +92,7 @@ void game(Game& _game) {
     Pipeline pipeline;
     
     render.create(_game.commandPool,_game.swapchain);
-    image.create(_game.commandPool);
+    image.create(_game.commandPool,projectBaseDir/"assets"/"texture.jpg");
     ubo.create(_game.device,render.MAX_FRAMES_IN_FLIGHT);
     dsLayout.create(_game.device,
         {
@@ -104,7 +104,7 @@ void game(Game& _game) {
     );
     dephBuffer.create(_game.commandPool,_game.swapchain);
     pipeline.create(_game.device,
-        std::filesystem::path("bin")/"slang.spv",
+        projectBaseDir/"bin"/"slang.spv",
         "vertMain","fragMain",
         _game.swapchain, dsLayout,dephBuffer);
 
@@ -185,9 +185,10 @@ void game(Game& _game) {
 }
 
 int main(int argc, char const *argv[]){
+    auto projectBaseDir = std::filesystem::canonical(argv[0]).parent_path().parent_path().parent_path();
     try{
         Game _game;
-        game(_game);
+        game(_game,projectBaseDir);
     } catch (const vk::SystemError& err){
         std::cerr << "Vulkan error: " << err.what() << std::endl;
         return 1;

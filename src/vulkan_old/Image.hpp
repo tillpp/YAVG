@@ -14,10 +14,10 @@ public:
     vk::raii::Image image = nullptr;
     vk::raii::ImageView imageView = nullptr;
     vk::raii::Sampler textureSampler = nullptr;
-    void create(CommandPool& pool){
+    void create(CommandPool& pool,std::string path){
         //load image
         int texWidth, texHeight, texChannels;
-        stbi_uc* pixels = stbi_load("assets/texture.jpg", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+        stbi_uc* pixels = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
         vk::DeviceSize imageSize = texWidth * texHeight * 4;
 
         if (!pixels) {
