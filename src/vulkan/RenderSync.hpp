@@ -22,7 +22,6 @@ public:
     const int MAX_FRAMES_IN_FLIGHT = 2;
     
     void create(CommandPool& pool,Swapchain& swapchain);
-    void close(Device& device);
     void recreateSwapChain(Window& window,CommandPool& pool,Swapchain& swapchain,DepthBuffer* depthBuffer);
 
     bool begin(

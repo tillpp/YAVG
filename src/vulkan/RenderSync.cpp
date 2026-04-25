@@ -16,10 +16,6 @@ void RenderSync::create(CommandPool& pool,Swapchain& swapchain){
     }
     
 }
-void RenderSync::close(Device& device){
-    device.device.waitIdle();
-}
-
 
 uint32_t RenderSync::getFrameIndex()const{
     return frameIndex;

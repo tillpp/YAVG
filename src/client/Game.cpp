@@ -41,8 +41,7 @@ Game::Game():
     device.create(instance,deviceSettings, features);
     swapchain.create(window,device);
     commandPool.create(device,queue);
-
-
+    render.create(commandPool,swapchain);
 }
 
 Game::~Game()

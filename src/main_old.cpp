@@ -109,7 +109,6 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
 
 
 
-    RenderSync render;
     Image image;
     UBO ubo;
     DescriptorSetLayout dsLayout;
@@ -117,15 +116,14 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
     DepthBuffer depthBuffer;
     Pipeline pipeline;
     
-    render.create(_game.commandPool,_game.swapchain);
     image.create(_game.commandPool,projectBaseDir/"assets"/"texture.jpg");
-    ubo.create(_game.device,render.MAX_FRAMES_IN_FLIGHT);
+    ubo.create(_game.device,_game.render.MAX_FRAMES_IN_FLIGHT);
     dsLayout.create(_game.device,
         {
             vk::DescriptorSetLayoutBinding( 0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex, nullptr),
             vk::DescriptorSetLayoutBinding( 1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment, nullptr)
         },
-        render.MAX_FRAMES_IN_FLIGHT,
+        _game.render.MAX_FRAMES_IN_FLIGHT,
         ubo,image
     );
     depthBuffer.create(_game.commandPool,_game.swapchain);
@@ -146,7 +144,7 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
     }
 
     GuiSystem gs;
-    gs.create(_game.device,_game.commandPool,_game.swapchain,render,dsLayout,projectBaseDir,depthBuffer);
+    gs.create(_game.device,_game.commandPool,_game.swapchain,_game.render,dsLayout,projectBaseDir,depthBuffer);
 
     // TODO refactor the following in the future:
     auto recordCommandBuffer = [&](CommandBuffer& CB,uint32_t frameIndex,uint32_t imageIndex)
@@ -166,7 +164,7 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
             commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), _game.swapchain.swapChainExtent));
             
             //TODO: learn more about dynamic descriptors
-            dsLayout.use(commandBuffer,render,pipeline);
+            dsLayout.use(commandBuffer,_game.render,pipeline);
     
             
             for (size_t x = 0; x < range; x++){
@@ -181,7 +179,7 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
             commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *gs.pipeline.graphicsPipeline);
             commandBuffer.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(_game.swapchain.swapChainExtent.width), static_cast<float>(_game.swapchain.swapChainExtent.height), 0.0f, 1.0f));
             commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), _game.swapchain.swapChainExtent));
-            dsLayout.use(commandBuffer,render,pipeline);
+            dsLayout.use(commandBuffer,_game.render,pipeline);
             gs.draw(CB);
 
         }
@@ -205,20 +203,20 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
         //drawing
         {
             ImageIndex imageIndex;
-            if(!render.begin(_game.window,_game.swapchain,_game.commandPool,&depthBuffer,imageIndex))
+            if(!_game.render.begin(_game.window,_game.swapchain,_game.commandPool,&depthBuffer,imageIndex))
                 continue;
-            auto frameIndex = render.getFrameIndex();
-            auto& CB        = render.getCommandBuffer();
+            auto frameIndex = _game.render.getFrameIndex();
+            auto& CB        = _game.render.getCommandBuffer();
             
             recordCommandBuffer(CB,frameIndex,imageIndex);
-            render.end(_game.window,_game.swapchain,_game.commandPool,&depthBuffer,imageIndex);
+            _game.render.end(_game.window,_game.swapchain,_game.commandPool,&depthBuffer,imageIndex);
         }
         
         //FRAMERATE STUFF
         auto now = std::chrono::steady_clock::now();
         if(std::chrono::duration_cast<std::chrono::milliseconds>(now-lastSecond).count()>=1000){
             float frameTime = std::chrono::duration<float, std::chrono::microseconds::period>(now - lastFrame).count();
-            std::cout << "[FSP]" << frames <<" "<< frameTime <<"µs"<< std::endl;
+            std::cout << "[FPS]" << frames <<" "<< frameTime <<"µs"<< std::endl;
             frames = 0;
             lastSecond = now;
         }
@@ -246,7 +244,7 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
         }
         
     }
-    render.close(_game.device);
+    _game.device.device.waitIdle();
 }
 
 int main(int argc, char const *argv[]){
@@ -254,6 +252,7 @@ int main(int argc, char const *argv[]){
     try{
         Game _game;
         game(_game,projectBaseDir);
+
     } catch (const vk::SystemError& err){
         std::cerr << "Vulkan error: " << err.what() << std::endl;
         return 1;

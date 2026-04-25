@@ -6,6 +6,7 @@
 #include "vulkan/GraphicsQueue.hpp"
 #include "vulkan/Swapchain.hpp"
 #include "vulkan/CommandPool.hpp"
+#include "vulkan/RenderSync.hpp"
 #include "server/Server.hpp"
 #include "GameFolder.hpp"
 
@@ -21,9 +22,11 @@ public:
     GraphicsQueue queue;
     Swapchain swapchain;
     CommandPool commandPool;    
-    
+    RenderSync render;
+
     GameFolder gf;
     Server server;
+    
     Game();
     ~Game();
 };
