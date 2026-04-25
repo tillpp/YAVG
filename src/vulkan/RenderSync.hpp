@@ -3,7 +3,7 @@
 #include "vulkan/GraphicsQueue.hpp"
 #include "vulkan/CommandPool.hpp"
 #include "vulkan/CommandBuffer.hpp"
-#include "vulkan_old/DepthBuffer.hpp"
+#include "vulkan/DepthBuffer.hpp"
 
 typedef uint32_t ImageIndex;
 class RenderSync
