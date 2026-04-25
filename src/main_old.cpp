@@ -8,8 +8,8 @@
 #include "vulkan_old/Pipeline.hpp"
 #include "vulkan_old/CommandBuffer.hpp"
 #include "vulkan_old/DescriptorSetLayout.hpp"
-#include "vulkan_old/Camera.hpp"
 #include "vulkan_old/Render.hpp"
+#include "client/Camera.hpp"
 #include "server/Region.hpp"
 
 #include "client/Game.hpp"
