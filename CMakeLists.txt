@@ -113,6 +113,12 @@ if(WIN32)
   target_include_directories(YAVOG PRIVATE ${vulkan_headers_SOURCE_DIR}/include)
 endif()
 
+if(MINGW)
+    target_link_options(YAVOG PRIVATE
+        -static-libgcc -static-libstdc++ -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive
+    )
+endif()
+
 # shaders
 function (add_slang_shader_target TARGET)
   cmake_parse_arguments ("SHADER" "" "OUT" "SOURCES" ${ARGN})
@@ -139,13 +145,22 @@ file(GLOB_RECURSE SHADER_SLANG_SOURCES CONFIGURE_DEPENDS
 file(GLOB_RECURSE SHADER_SLANG_SOURCES_GUI CONFIGURE_DEPENDS
        ${PROJECT_SOURCE_DIR}/shaders/gui.slang)
 
-
 if(WIN32)
   set(SLANGC_EXECUTABLE "${slang_SOURCE_DIR}/bin/slangc.exe")
 else()
   set(SLANGC_EXECUTABLE "${vulkan_SOURCE_DIR}/x86_64/bin/slangc")
 endif(WIN32)
+
 add_slang_shader_target( shaders SOURCES ${SHADER_SLANG_SOURCES} OUT slang)
 add_slang_shader_target( shaders_gui SOURCES ${SHADER_SLANG_SOURCES_GUI} OUT gui)
 add_dependencies(YAVOG shaders)
 add_dependencies(YAVOG shaders_gui)
+
+
+
+if(WIN32)
+    add_custom_command(TARGET YAVOG POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy -t $<TARGET_FILE_DIR:YAVOG> $<TARGET_RUNTIME_DLLS:YAVOG>
+        COMMAND_EXPAND_LISTS
+    )
+endif()
