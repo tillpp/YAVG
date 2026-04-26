@@ -17,11 +17,16 @@ struct VertexOutput {
     float3 color;
     float2 fragTexCoord;
 };
+struct PushConstants {
+    float2 pos;
+    float2 size;
+};
+[[vk::push_constant]] PushConstants pc;
 
 [shader("vertex")]
 VertexOutput vertMain(VSInput input,uint vid : SV_VertexID,uint iid :SV_InstanceID) {
     VertexOutput output;
-    output.sv_position = float4(float3(input.inPosition.x , input.inPosition.z , 0), 1.0);
+    output.sv_position = float4(float3(input.inPosition.x * pc.size.x * 2 + pc.pos.x * 2 - 1, input.inPosition.z * pc.size.y * 2 + pc.pos.y * 2-1, 0), 1.0);
     output.color = input.inColor;
     output.fragTexCoord = input.inTexCoord;
     return output;

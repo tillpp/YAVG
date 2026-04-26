@@ -51,7 +51,7 @@ public:
             }
         }
     }
-
+    
     vk::raii::DescriptorSetLayout descriptorSetLayout = nullptr;
     vk::raii::DescriptorPool descriptorPool = nullptr;
     std::vector<vk::raii::DescriptorSet> descriptorSets;

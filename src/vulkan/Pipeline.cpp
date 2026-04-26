@@ -1,6 +1,7 @@
 #include "Pipeline.hpp"
 #include "vulkan_old/DescriptorSetLayout.hpp"
 #include "Parser/File.hpp"
+#include "vulkan_old/PushContant.hpp"
 
 [[nodiscard]] vk::raii::ShaderModule Pipeline::createShaderModule(
     Device& device,
@@ -17,7 +18,9 @@ void Pipeline::create(
     std::string entryFnFragment, 
     Swapchain& swapChain,
     DescriptorSetLayout& dsLayout,
-    DepthBuffer& depthBuffer,bool depthTesting) {
+    DepthBuffer& depthBuffer,bool depthTesting,
+    std::optional<PushConstant*> pushConstant
+) {
 
     // shader
     vk::raii::ShaderModule shaderModule = createShaderModule(device,readFile(shaderFile));
@@ -109,6 +112,10 @@ void Pipeline::create(
             .pSetLayouts = &*dsLayout.descriptorSetLayout, 
             .pushConstantRangeCount = 0 
         };
+        if(pushConstant.has_value()){
+            pipelineLayoutInfo.pushConstantRangeCount = 1;
+            pipelineLayoutInfo.pPushConstantRanges = &pushConstant.value()->pushConstantRange;
+        }
         pipelineLayout = vk::raii::PipelineLayout(device.device, pipelineLayoutInfo);
     }
     

@@ -26,12 +26,13 @@
 
 #include "client/MeshWeaver.hpp"
 #include "FastNoiseLite.h"
+#include "vulkan_old/PushContant.hpp"
 
 const std::vector<Vertex> vertices = {
-    {{0,   0,0.f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-    {{1.f, 0,0.f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-    {{1.f, 0,1.f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-    {{0,   0,1.f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}};
+    {{0,   0,0.f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+    {{1.f, 0,0.f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
+    {{1.f, 0,1.f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+    {{0,   0,1.f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}};
 const std::vector<uint16_t> indices = {
     0, 3, 2, 2, 1, 0};
 
@@ -39,15 +40,50 @@ class GuiSystem{
 public:
     Buffer vertexBuffer, indexBuffer;
     Pipeline pipeline;
-    void create(Device& device,CommandPool& pool,Swapchain& swapchain,RenderSync& render,DescriptorSetLayout& dsLayout,std::filesystem::path projectBaseDir,DepthBuffer& depthBuffer){
+    Image image,image2;
+    DescriptorSetLayout dsLayout,dsLayout2;
+    PushConstant pushConstant;
+    void create(Device& device,CommandPool& pool,Swapchain& swapchain,RenderSync& render,DescriptorSetLayout& _dsLayout,std::filesystem::path projectBaseDir,DepthBuffer& depthBuffer,UBO& ubo){
+        image.create(pool,projectBaseDir/"assets"/"SingleplayerBtn.png");
+        image2.create(pool,projectBaseDir/"assets"/"MultiplayerBtn.png");
+        dsLayout.create(device,
+            {
+                vk::DescriptorSetLayoutBinding( 0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex, nullptr),
+                vk::DescriptorSetLayoutBinding( 1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment, nullptr)
+            },
+            render.MAX_FRAMES_IN_FLIGHT,
+            ubo,image
+        );
+        dsLayout2.create(device,
+            {
+                vk::DescriptorSetLayoutBinding( 0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex, nullptr),
+                vk::DescriptorSetLayoutBinding( 1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment, nullptr)
+            },
+            render.MAX_FRAMES_IN_FLIGHT,
+            ubo,image2
+        );
+        pushConstant.create();
         pipeline.create(device,projectBaseDir/"bin"/"gui.spv",
-            "vertMain","fragMain",swapchain,dsLayout,depthBuffer,false
+            "vertMain","fragMain",swapchain,dsLayout,depthBuffer,false,&pushConstant
         );
         vertexBuffer.createVertexBuffer(pool,vertices);
         indexBuffer.createIndexBuffer(pool,indices);
+
+        
     }
-    void draw(CommandBuffer& buffer){
+    void draw(Window& window,CommandBuffer& buffer,RenderSync& render){
         auto& commandBuffer = buffer.commandBuffer;
+
+        pushConstant.use(buffer,pipeline,PushConstantBlock(glm::vec2(1920,1080),glm::vec2(660+150,300),glm::vec2(300,100)));
+        
+        dsLayout.use(commandBuffer,render,pipeline);
+        commandBuffer.bindVertexBuffers(0, *vertexBuffer.buffer, {0});
+        commandBuffer.bindIndexBuffer(*indexBuffer.buffer, 0, vk::IndexType::eUint16);
+        commandBuffer.drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0,0);
+        
+        pushConstant.use(buffer,pipeline,PushConstantBlock(glm::vec2(1920,1080),glm::vec2(660+150,450),glm::vec2(300,100)));
+
+        dsLayout2.use(commandBuffer,render,pipeline);
         commandBuffer.bindVertexBuffers(0, *vertexBuffer.buffer, {0});
         commandBuffer.bindIndexBuffer(*indexBuffer.buffer, 0, vk::IndexType::eUint16);
         commandBuffer.drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0,0);
@@ -144,7 +180,7 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
     }
 
     GuiSystem gs;
-    gs.create(_game.device,_game.commandPool,_game.swapchain,_game.render,dsLayout,projectBaseDir,depthBuffer);
+    gs.create(_game.device,_game.commandPool,_game.swapchain,_game.render,dsLayout,projectBaseDir,depthBuffer,ubo);
 
     // TODO refactor the following in the future:
     auto recordCommandBuffer = [&](CommandBuffer& CB,uint32_t frameIndex,uint32_t imageIndex)
@@ -179,8 +215,7 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
             commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *gs.pipeline.graphicsPipeline);
             commandBuffer.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(_game.swapchain.swapChainExtent.width), static_cast<float>(_game.swapchain.swapChainExtent.height), 0.0f, 1.0f));
             commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), _game.swapchain.swapChainExtent));
-            dsLayout.use(commandBuffer,_game.render,pipeline);
-            gs.draw(CB);
+            gs.draw(_game.window,CB,_game.render);
 
         }
         

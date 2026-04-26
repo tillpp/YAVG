@@ -23,5 +23,6 @@ public:
         std::string entryFnFragment, 
         Swapchain& swapChain,
         class DescriptorSetLayout& dsLayout,
-        DepthBuffer& depthBuffer, bool depthTesting = true);
+        DepthBuffer& depthBuffer, bool depthTesting = true,
+        std::optional<class PushConstant*> pushConstant = {});
 };
