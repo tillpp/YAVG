@@ -3,7 +3,7 @@
 void Camera::update(Window& window, float delta){
 
     //camera rotation
-    float sensitivity = 0.05;
+    float sensitivity = 0.05f;
     double xpos, ypos;
     glfwGetCursorPos(window, &xpos, &ypos);
     if(ypos*sensitivity > 89.0 || -89.0 >ypos*sensitivity){

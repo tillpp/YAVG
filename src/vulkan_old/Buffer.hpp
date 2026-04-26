@@ -57,7 +57,11 @@ public:
     static void copyBuffer(CommandPool& commandPool,Buffer& srcBuffer, Buffer& dstBuffer, vk::DeviceSize size) {
         CommandBuffer commandBuffer(commandPool);
         commandBuffer.beginSingleTimeCommands();
-        commandBuffer.commandBuffer.copyBuffer(srcBuffer.buffer,dstBuffer.buffer,vk::BufferCopy(0,0,size));
+        commandBuffer.commandBuffer.copyBuffer(srcBuffer.buffer,dstBuffer.buffer,vk::BufferCopy{
+            .srcOffset = 0,
+            .dstOffset = 0,
+            .size      = size,
+        });
         commandBuffer.endSingleTimeCommands(commandPool);
     }
 public:

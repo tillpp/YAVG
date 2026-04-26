@@ -15,8 +15,14 @@ public:
         //pool creation
         {
             std::array poolSize {
-                vk::DescriptorPoolSize( vk::DescriptorType::eUniformBuffer, MAX_FRAMES_IN_FLIGHT),
-                vk::DescriptorPoolSize(  vk::DescriptorType::eCombinedImageSampler, MAX_FRAMES_IN_FLIGHT)
+                vk::DescriptorPoolSize{
+                    .type = vk::DescriptorType::eUniformBuffer,
+                    .descriptorCount = MAX_FRAMES_IN_FLIGHT,
+                },
+                vk::DescriptorPoolSize{
+                    .type =  vk::DescriptorType::eCombinedImageSampler,
+                    .descriptorCount = MAX_FRAMES_IN_FLIGHT,
+                },
             };
             vk::DescriptorPoolCreateInfo poolInfo{ 
                 .flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
@@ -56,7 +62,7 @@ public:
     vk::raii::DescriptorPool descriptorPool = nullptr;
     std::vector<vk::raii::DescriptorSet> descriptorSets;
     
-    void use(vk::raii::CommandBuffer& commandBuffer,RenderSync& render, Pipeline& pipeline){
-        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline.pipelineLayout, 0, *descriptorSets[render.getFrameIndex()], nullptr);
+    void use(vk::raii::CommandBuffer& commandBuffer,RenderSync& render, Pipeline& pipeline,uint32_t firstSet = 0){
+        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline.pipelineLayout, firstSet, *descriptorSets[render.getFrameIndex()], nullptr);
     }
 };

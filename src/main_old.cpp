@@ -48,16 +48,40 @@ public:
         image2.create(pool,projectBaseDir/"assets"/"MultiplayerBtn.png");
         dsLayout.create(device,
             {
-                vk::DescriptorSetLayoutBinding( 0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex, nullptr),
-                vk::DescriptorSetLayoutBinding( 1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment, nullptr)
+                vk::DescriptorSetLayoutBinding{
+                    .binding = 0,
+                    .descriptorType = vk::DescriptorType::eUniformBuffer,
+                    .descriptorCount = 1,
+                    .stageFlags = vk::ShaderStageFlagBits::eVertex,
+                    .pImmutableSamplers = nullptr,
+                },
+                vk::DescriptorSetLayoutBinding{
+                    .binding = 1,
+                    .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+                    .descriptorCount = 1,
+                    .stageFlags = vk::ShaderStageFlagBits::eFragment,
+                    .pImmutableSamplers = nullptr,
+                },
             },
             render.MAX_FRAMES_IN_FLIGHT,
             ubo,image
         );
         dsLayout2.create(device,
             {
-                vk::DescriptorSetLayoutBinding( 0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex, nullptr),
-                vk::DescriptorSetLayoutBinding( 1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment, nullptr)
+                vk::DescriptorSetLayoutBinding{
+                    .binding = 0,
+                    .descriptorType = vk::DescriptorType::eUniformBuffer,
+                    .descriptorCount = 1,
+                    .stageFlags = vk::ShaderStageFlagBits::eVertex,
+                    .pImmutableSamplers = nullptr,
+                },
+                vk::DescriptorSetLayoutBinding{
+                    .binding = 1,
+                    .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+                    .descriptorCount = 1,
+                    .stageFlags = vk::ShaderStageFlagBits::eFragment,
+                    .pImmutableSamplers = nullptr,
+                },
             },
             render.MAX_FRAMES_IN_FLIGHT,
             ubo,image2
@@ -156,8 +180,20 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
     ubo.create(_game.device,_game.render.MAX_FRAMES_IN_FLIGHT);
     dsLayout.create(_game.device,
         {
-            vk::DescriptorSetLayoutBinding( 0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex, nullptr),
-            vk::DescriptorSetLayoutBinding( 1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment, nullptr)
+            vk::DescriptorSetLayoutBinding{
+                .binding = 0,
+                .descriptorType = vk::DescriptorType::eUniformBuffer,
+                .descriptorCount = 1,
+                .stageFlags = vk::ShaderStageFlagBits::eVertex,
+                .pImmutableSamplers = nullptr,
+            },
+            vk::DescriptorSetLayoutBinding{
+                .binding = 1,
+                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+                .descriptorCount = 1,
+                .stageFlags = vk::ShaderStageFlagBits::eFragment,
+                .pImmutableSamplers = nullptr,
+            },
         },
         _game.render.MAX_FRAMES_IN_FLIGHT,
         ubo,image
@@ -196,8 +232,18 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
         auto& commandBuffer = CB.commandBuffer;
         {
             commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline.graphicsPipeline);
-            commandBuffer.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(_game.swapchain.swapChainExtent.width), static_cast<float>(_game.swapchain.swapChainExtent.height), 0.0f, 1.0f));
-            commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), _game.swapchain.swapChainExtent));
+            commandBuffer.setViewport(0, vk::Viewport{
+                .x = 0.0f,
+                .y = 0.0f,
+                .width = static_cast<float>(_game.swapchain.swapChainExtent.width),
+                .height = static_cast<float>(_game.swapchain.swapChainExtent.height),
+                .minDepth = 0.0f,
+                .maxDepth = 1.0f,
+            });
+            commandBuffer.setScissor(0, vk::Rect2D{
+                .offset = vk::Offset2D{.x = 0,.y = 0},
+                .extent = _game.swapchain.swapChainExtent,
+            });
             
             //TODO: learn more about dynamic descriptors
             dsLayout.use(commandBuffer,_game.render,pipeline);
@@ -213,8 +259,18 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
         }
         {
             commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *gs.pipeline.graphicsPipeline);
-            commandBuffer.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(_game.swapchain.swapChainExtent.width), static_cast<float>(_game.swapchain.swapChainExtent.height), 0.0f, 1.0f));
-            commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), _game.swapchain.swapChainExtent));
+            commandBuffer.setViewport(0, vk::Viewport{
+                .x = 0.0f,
+                .y = 0.0f,
+                .width = static_cast<float>(_game.swapchain.swapChainExtent.width),
+                .height = static_cast<float>(_game.swapchain.swapChainExtent.height),
+                .minDepth = 0.0f,
+                .maxDepth = 1.0f,
+            });
+            commandBuffer.setScissor(0, vk::Rect2D{
+                .offset = vk::Offset2D{.x = 0,.y = 0},
+                .extent = _game.swapchain.swapChainExtent,
+            });
             gs.draw(_game.window,CB,_game.render);
 
         }

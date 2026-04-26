@@ -11,7 +11,8 @@
         "generator": "Unix Makefiles",
         "binaryDir": "${sourceDir}/build/linux",
         "cacheVariables": {
-          "CMAKE_BUILD_TYPE": "Debug"
+          "CMAKE_BUILD_TYPE": "Debug",
+          "CMAKE_CXX_COMPILER": "clang++"
         }
       },
       {

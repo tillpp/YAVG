@@ -65,7 +65,7 @@ bool SocketPoll::wait(size_t ms){
 #endif
     //remove all invalid sockets:
     
-    for (int i = 0; i < connections.size();){
+    for (size_t i = 0; i < connections.size();){
         auto& con = connections[i];
         if(con.revents & (POLLERR|POLLHUP|POLLNVAL)){
             remove(con.fd);

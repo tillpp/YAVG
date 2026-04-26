@@ -48,7 +48,12 @@ FetchContent_Declare(
   GIT_TAG 4a17083770411d2af8fd99b1f249ea10143dc959 # don't remove Tag. Small star library, better check code after each update for malicious code.
   SOURCE_SUBDIR Cpp
 )
-FetchContent_MakeAvailable(glfw glm stb fastnoiselite)
+FetchContent_Declare(
+  freetype
+  GIT_REPOSITORY https://gitlab.freedesktop.org/freetype/freetype.git
+  GIT_TAG        b1f47850878d232eea372ab167e760ccac4c4e32 #version
+)
+FetchContent_MakeAvailable(glfw glm stb fastnoiselite freetype)
 
 #vulkan
 if(WIN32)
@@ -96,6 +101,7 @@ target_include_directories(YAVOG PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(YAVOG glfw)
 target_link_libraries(YAVOG vulkan)
 target_link_libraries(YAVOG glm)
+target_link_libraries(YAVOG freetype)
 
 if(MSVC)
   target_compile_options(YAVOG PRIVATE /wd2397 /wd4838)

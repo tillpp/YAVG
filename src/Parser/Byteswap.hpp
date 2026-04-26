@@ -1,4 +1,5 @@
 #pragma once
+#include <utility>
 
 template<class T>
 T byteswap(const T& t){
@@ -10,6 +11,6 @@ T byteswap(const T& t){
         return __builtin_bswap32((unsigned int)t);
     else if(sizeof(t)==64)
         return __builtin_bswap64((unsigned int)t);
-    else if(sizeof(t)==128)
-        return __builtin_bswap128((unsigned int)t);
+    assert(0 && "unreachable");
+    return 0;
 }

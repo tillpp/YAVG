@@ -127,7 +127,10 @@ void Swapchain::beginRendering(CommandBuffer& commandBuffer,uint32_t imageIndex,
     }
 
     vk::ClearValue clearColor = vk::ClearColorValue(0.01f, 0.0f, 0.01f, 1.0f);
-    vk::ClearValue clearDepth = vk::ClearDepthStencilValue(1.0f, 0);
+    vk::ClearValue clearDepth = vk::ClearDepthStencilValue{
+        .depth = 1.0f,
+        .stencil = 0
+    };
     
 
     vk::RenderingAttachmentInfo attachmentInfo = {

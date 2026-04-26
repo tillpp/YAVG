@@ -3,6 +3,7 @@
 #include "vulkan/Device.hpp"
 #include "Buffer.hpp"
 #include "vulkan/CommandBuffer.hpp"
+#include <filesystem>
 
 //TODO learn more about ktx
 //TODO: try to reread https://docs.vulkan.org/tutorial/latest/06_Texture_mapping/00_Images.html#_layout_transitions , cause i didnt understand everything.
@@ -14,7 +15,7 @@ public:
     vk::raii::Image image = nullptr;
     vk::raii::ImageView imageView = nullptr;
     vk::raii::Sampler textureSampler = nullptr;
-    void create(CommandPool& pool,std::string path){
+    void create(CommandPool& pool,std::filesystem::path path){
         //load image
         int texWidth, texHeight, texChannels;
         stbi_uc* pixels = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
