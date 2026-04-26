@@ -1,6 +1,6 @@
 #pragma once
 #include "vulkan/Header.hpp"
-#include "vulkan/Window.hpp"
+#include "vulkan/setup/Window.hpp"
 
 class Camera
 {

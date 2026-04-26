@@ -1,8 +1,8 @@
 #pragma once
-#include "vulkan/Device.hpp"
+#include "vulkan/setup/Device.hpp"
 #include <glm/glm.hpp>
 #include <array>
-#include "vulkan/CommandBuffer.hpp"
+#include "vulkan/setup/CommandBuffer.hpp"
 
 struct Vertex
 {

@@ -1,6 +1,6 @@
 #pragma once
 #include "vulkan/Header.hpp"
-#include "vulkan/RenderSync.hpp"
+#include "vulkan/setup/RenderSync.hpp"
 
 struct DescriptorLayout{
     uint32_t             binding;

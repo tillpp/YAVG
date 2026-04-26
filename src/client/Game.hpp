@@ -1,12 +1,12 @@
 #pragma once
-#include "vulkan/Instance.hpp"
-#include "vulkan/Window.hpp"
-#include "vulkan/ValidationLayer.hpp"
-#include "vulkan/Device.hpp"
-#include "vulkan/GraphicsQueue.hpp"
-#include "vulkan/Swapchain.hpp"
-#include "vulkan/CommandPool.hpp"
-#include "vulkan/RenderSync.hpp"
+#include "vulkan/setup/Instance.hpp"
+#include "vulkan/setup/Window.hpp"
+#include "vulkan/setup/ValidationLayer.hpp"
+#include "vulkan/setup/Device.hpp"
+#include "vulkan/setup/GraphicsQueue.hpp"
+#include "vulkan/setup/Swapchain.hpp"
+#include "vulkan/setup/CommandPool.hpp"
+#include "vulkan/setup/RenderSync.hpp"
 #include "server/Server.hpp"
 #include "GameFolder.hpp"
 
@@ -27,6 +27,7 @@ public:
     GameFolder gf;
     Server server;
     
-    Game();
+    std::filesystem::path projectBaseDir;
+    Game(std::filesystem::path projectBaseDir);
     ~Game();
 };

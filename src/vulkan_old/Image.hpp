@@ -1,8 +1,8 @@
 #pragma once
 #include <stb_image.h>
-#include "vulkan/Device.hpp"
+#include "vulkan/setup/Device.hpp"
+#include "vulkan/setup/CommandBuffer.hpp"
 #include "Buffer.hpp"
-#include "vulkan/CommandBuffer.hpp"
 #include <filesystem>
 
 //TODO learn more about ktx

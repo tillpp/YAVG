@@ -1,6 +1,6 @@
 #pragma once
 #include "vulkan/Header.hpp"
-#include "vulkan/CommandBuffer.hpp"
+#include "vulkan/setup/CommandBuffer.hpp"
 #include "vulkan/Pipeline.hpp"
 
 class PushConstant{

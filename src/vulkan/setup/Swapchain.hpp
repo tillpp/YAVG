@@ -1,7 +1,7 @@
 #pragma once
-#include "vulkan/Window.hpp"
-#include "vulkan/Device.hpp"
-#include "vulkan/CommandBuffer.hpp"
+#include "vulkan/setup/Window.hpp"
+#include "vulkan/setup/Device.hpp"
+#include "vulkan/setup/CommandBuffer.hpp"
 #include <limits>
 
 class Swapchain

@@ -1,5 +1,5 @@
 #include "Device.hpp"
-#include "vulkan/Queue.hpp"
+#include "vulkan/setup/Queue.hpp"
 
 void Device::create(Instance& instance,DeviceSettings settings,const DeviceFeatures& features){
     physicalDevice = pickPhysicalDevice(instance,settings,features);

@@ -1,6 +1,6 @@
 #pragma once
 #include "vulkan/Header.hpp"
-#include "vulkan/Device.hpp"
+#include "vulkan/setup/Device.hpp"
 
 class Queue:public vk::raii::Queue
 {

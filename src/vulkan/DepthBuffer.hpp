@@ -1,6 +1,6 @@
 #pragma once
 #include "vulkan_old/Image.hpp"
-#include "vulkan/Swapchain.hpp"
+#include "vulkan/setup/Swapchain.hpp"
 
 
 //TODO: look into stencil tests

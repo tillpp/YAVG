@@ -1,9 +1,10 @@
 #include "Game.hpp"
 
-Game::Game():
+Game::Game(std::filesystem::path projectBaseDir):
     window(&instanceSettings),
     validationLayer(&instanceSettings),
-    swapchain(deviceSettings)
+    swapchain(deviceSettings),
+    projectBaseDir(projectBaseDir)
 {
     instance.create(instanceSettings);
     window.create(instance,1280, 720, "YAVoG");

@@ -1,5 +1,5 @@
 #pragma once
-#include "vulkan/Device.hpp"
+#include "vulkan/setup/Device.hpp"
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>

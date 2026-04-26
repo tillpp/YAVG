@@ -1,7 +1,7 @@
 #pragma once
-#include "vulkan/Device.hpp"
-#include "vulkan/CommandPool.hpp"
-#include "vulkan/Queue.hpp"
+#include "vulkan/setup/Device.hpp"
+#include "vulkan/setup/CommandPool.hpp"
+#include "vulkan/setup/Queue.hpp"
 
 
 class CommandBuffer

@@ -1,17 +1,17 @@
 
 
 #include "client/GameFolder.hpp"
-#include "vulkan/Window.hpp"
-#include "vulkan/ValidationLayer.hpp"
-#include "vulkan/GraphicsQueue.hpp"
-#include "vulkan/Device.hpp"
+#include "vulkan/setup/Window.hpp"
+#include "vulkan/setup/ValidationLayer.hpp"
+#include "vulkan/setup/GraphicsQueue.hpp"
+#include "vulkan/setup/Device.hpp"
+#include "vulkan/setup/CommandBuffer.hpp"
+#include "vulkan/setup/RenderSync.hpp"
 #include "vulkan/Pipeline.hpp"
-#include "vulkan/CommandBuffer.hpp"
 #include "vulkan/DescriptorSetLayout.hpp"
 #include "vulkan/DescriptorSet.hpp"
 #include "vulkan/DescriptorLayout.hpp"
 #include "vulkan/Descriptor.hpp"
-#include "vulkan/RenderSync.hpp"
 #include "client/Camera.hpp"
 #include "server/Region.hpp"
 #include <thread>
@@ -63,6 +63,7 @@ public:
         RenderSync& render,
         std::filesystem::path projectBaseDir,
         DepthBuffer& depthBuffer){
+
         image.create(pool,projectBaseDir/"assets"/"SingleplayerBtn.png");
         image2.create(pool,projectBaseDir/"assets"/"MultiplayerBtn.png");
         dsLayout.create(device,
@@ -326,7 +327,7 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
 int main(int argc, char const *argv[]){
     auto projectBaseDir = std::filesystem::canonical(argv[0]).parent_path().parent_path().parent_path();
     try{
-        Game _game;
+        Game _game(projectBaseDir);
         game(_game,projectBaseDir);
 
     } catch (const vk::SystemError& err){

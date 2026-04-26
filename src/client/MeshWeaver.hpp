@@ -1,5 +1,5 @@
 #pragma once
-#include "../vulkan/Device.hpp"
+#include "vulkan/setup/Device.hpp"
 #include <glm/glm.hpp>
 #include <iostream>
 

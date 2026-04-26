@@ -1,7 +1,7 @@
 #pragma once
 #include "vulkan/Header.hpp"
-#include "vulkan/Instance.hpp"
-#include "vulkan/DeviceFeatures.hpp"
+#include "vulkan/setup/Instance.hpp"
+#include "vulkan/setup/DeviceFeatures.hpp"
 
 
 struct DeviceSettings{

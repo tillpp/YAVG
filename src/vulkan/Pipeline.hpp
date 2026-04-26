@@ -1,9 +1,9 @@
 #pragma once
 #include <fstream>
 #include <filesystem>
-#include "vulkan/Swapchain.hpp"
-#include "vulkan_old/Buffer.hpp"
+#include "vulkan/setup/Swapchain.hpp"
 #include "vulkan/DepthBuffer.hpp"
+#include "vulkan_old/Buffer.hpp"
 #include "vulkan_old/UBO.hpp"
 
 class Pipeline

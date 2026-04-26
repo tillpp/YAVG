@@ -1,8 +1,8 @@
 #pragma once
-#include "vulkan/Device.hpp"
-#include "vulkan/GraphicsQueue.hpp"
-#include "vulkan/CommandPool.hpp"
-#include "vulkan/CommandBuffer.hpp"
+#include "vulkan/setup/Device.hpp"
+#include "vulkan/setup/GraphicsQueue.hpp"
+#include "vulkan/setup/CommandPool.hpp"
+#include "vulkan/setup/CommandBuffer.hpp"
 #include "vulkan/DepthBuffer.hpp"
 
 typedef uint32_t ImageIndex;
