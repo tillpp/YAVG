@@ -46,45 +46,17 @@ public:
     void create(Device& device,CommandPool& pool,Swapchain& swapchain,RenderSync& render,DescriptorSetLayout& _dsLayout,std::filesystem::path projectBaseDir,DepthBuffer& depthBuffer,UBO& ubo){
         image.create(pool,projectBaseDir/"assets"/"SingleplayerBtn.png");
         image2.create(pool,projectBaseDir/"assets"/"MultiplayerBtn.png");
-        dsLayout.create(device,
+        dsLayout.create(device,render,
             {
-                vk::DescriptorSetLayoutBinding{
-                    .binding = 0,
-                    .descriptorType = vk::DescriptorType::eUniformBuffer,
-                    .descriptorCount = 1,
-                    .stageFlags = vk::ShaderStageFlagBits::eVertex,
-                    .pImmutableSamplers = nullptr,
-                },
-                vk::DescriptorSetLayoutBinding{
-                    .binding = 1,
-                    .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-                    .descriptorCount = 1,
-                    .stageFlags = vk::ShaderStageFlagBits::eFragment,
-                    .pImmutableSamplers = nullptr,
-                },
-            },
-            render.MAX_FRAMES_IN_FLIGHT,
-            ubo,image
+                DescriptionSet(0,vk::ShaderStageFlagBits::eVertex,ubo),
+                DescriptionSet(1,vk::ShaderStageFlagBits::eFragment,image),
+            }
         );
-        dsLayout2.create(device,
+        dsLayout2.create(device,render,
             {
-                vk::DescriptorSetLayoutBinding{
-                    .binding = 0,
-                    .descriptorType = vk::DescriptorType::eUniformBuffer,
-                    .descriptorCount = 1,
-                    .stageFlags = vk::ShaderStageFlagBits::eVertex,
-                    .pImmutableSamplers = nullptr,
-                },
-                vk::DescriptorSetLayoutBinding{
-                    .binding = 1,
-                    .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-                    .descriptorCount = 1,
-                    .stageFlags = vk::ShaderStageFlagBits::eFragment,
-                    .pImmutableSamplers = nullptr,
-                },
-            },
-            render.MAX_FRAMES_IN_FLIGHT,
-            ubo,image2
+                DescriptionSet(0,vk::ShaderStageFlagBits::eVertex,ubo),
+                DescriptionSet(1,vk::ShaderStageFlagBits::eFragment,image2),
+            }
         );
         pushConstant.create();
         pipeline.create(device,projectBaseDir/"bin"/"gui.spv",
@@ -178,25 +150,11 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
     
     image.create(_game.commandPool,projectBaseDir/"assets"/"texture.jpg");
     ubo.create(_game.device,_game.render.MAX_FRAMES_IN_FLIGHT);
-    dsLayout.create(_game.device,
+    dsLayout.create(_game.device,_game.render,
         {
-            vk::DescriptorSetLayoutBinding{
-                .binding = 0,
-                .descriptorType = vk::DescriptorType::eUniformBuffer,
-                .descriptorCount = 1,
-                .stageFlags = vk::ShaderStageFlagBits::eVertex,
-                .pImmutableSamplers = nullptr,
-            },
-            vk::DescriptorSetLayoutBinding{
-                .binding = 1,
-                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-                .descriptorCount = 1,
-                .stageFlags = vk::ShaderStageFlagBits::eFragment,
-                .pImmutableSamplers = nullptr,
-            },
-        },
-        _game.render.MAX_FRAMES_IN_FLIGHT,
-        ubo,image
+            DescriptionSet(0,vk::ShaderStageFlagBits::eVertex,ubo),
+            DescriptionSet(1,vk::ShaderStageFlagBits::eFragment,image),
+        }
     );
     depthBuffer.create(_game.commandPool,_game.swapchain);
     pipeline.create(_game.device,

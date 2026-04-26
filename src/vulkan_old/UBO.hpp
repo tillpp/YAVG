@@ -14,7 +14,6 @@ struct UniformBufferObject {
     alignas(16) glm::mat4 proj;
 };
 
-//TODO: learn more about "push constants" as an alternative to this:
 class UBO
 {
 public:

@@ -18,7 +18,8 @@ public:
     void create(CommandPool& pool,std::filesystem::path path){
         //load image
         int texWidth, texHeight, texChannels;
-        stbi_uc* pixels = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+        auto pathAsString = path.string();
+        stbi_uc* pixels = stbi_load(pathAsString.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
         vk::DeviceSize imageSize = texWidth * texHeight * 4;
 
         if (!pixels) {

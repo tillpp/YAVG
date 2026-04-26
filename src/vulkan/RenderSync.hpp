@@ -19,7 +19,7 @@ public:
     uint32_t getFrameIndex()const;
     CommandBuffer& getCommandBuffer();
     
-    const int MAX_FRAMES_IN_FLIGHT = 2;
+    const uint32_t MAX_FRAMES_IN_FLIGHT = 2;
     
     void create(CommandPool& pool,Swapchain& swapchain);
     void recreateSwapChain(Window& window,CommandPool& pool,Swapchain& swapchain,DepthBuffer* depthBuffer);
