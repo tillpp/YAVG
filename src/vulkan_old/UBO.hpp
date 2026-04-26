@@ -17,7 +17,7 @@ struct UniformBufferObject {
 class UBO
 {
 public:
-
+    size_t size = sizeof(UniformBufferObject);
     std::vector<Buffer> uniformBuffers;
     std::vector<void*> uniformBuffersMapped;
 
