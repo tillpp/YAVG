@@ -2,28 +2,47 @@
 #include "vulkan/Header.hpp"
 #include "vulkan/RenderSync.hpp"
 
-class DescriptionSet{
-public:
+struct DescriptorLayout{
     uint32_t             binding;
     vk::ShaderStageFlags stageFlags;
-    
     vk::DescriptorType   descriptorType;
+
+    vk::DescriptorSetLayoutBinding getBinding()const{
+        return vk::DescriptorSetLayoutBinding{
+            .binding = binding,
+            .descriptorType = descriptorType,
+            .descriptorCount = 1,
+            .stageFlags = stageFlags,
+            .pImmutableSamplers = nullptr,
+        };
+    }
+
+    DescriptorLayout(
+        uint32_t             binding,
+        vk::ShaderStageFlags stageFlags,
+        vk::DescriptorType   descriptorType
+    ){
+        this->binding = binding;
+        this->stageFlags = stageFlags;
+        this->descriptorType = descriptorType;
+    }
+};
+class Descriptor:public DescriptorLayout{
+public:
     UBO*   ubo   = nullptr;
     Image* image = nullptr;
 
-    DescriptionSet(
+    Descriptor(
         uint32_t             binding,
         vk::ShaderStageFlags stageFlags,
         UBO&                 ubo
-    ):binding(binding),stageFlags(stageFlags),descriptorType(vk::DescriptorType::eUniformBuffer),ubo(&ubo){
-        
+    ):DescriptorLayout(binding,stageFlags,vk::DescriptorType::eUniformBuffer),ubo(&ubo){
     }
-    DescriptionSet(
+    Descriptor(
         uint32_t             binding,
         vk::ShaderStageFlags stageFlags,
         Image&               image
-    ):binding(binding),stageFlags(stageFlags),descriptorType(vk::DescriptorType::eCombinedImageSampler),image(&image){
-        
+    ):DescriptorLayout(binding,stageFlags,vk::DescriptorType::eCombinedImageSampler),image(&image){
     }
     
     vk::DescriptorBufferInfo bufferInfo;
@@ -47,25 +66,16 @@ public:
         }
     }
 
-    vk::DescriptorSetLayoutBinding getBinding()const{
-        return vk::DescriptorSetLayoutBinding{
-            .binding = binding,
-            .descriptorType = descriptorType,
-            .descriptorCount = 1,
-            .stageFlags = stageFlags,
-            .pImmutableSamplers = nullptr,
-        };
-    }
+    
 
 };
 class DescriptorSetLayout
 {
-    vk::raii::DescriptorPool descriptorPool = nullptr;
 public:
     vk::raii::DescriptorSetLayout descriptorSetLayout = nullptr;
-    std::vector<vk::raii::DescriptorSet> descriptorSets;
+    
 
-    void create(Device& device,RenderSync& render,std::vector<DescriptionSet> dsArray){
+    void create(Device& device,std::vector<DescriptorLayout> dsArray){
         {
             std::vector<vk::DescriptorSetLayoutBinding> bindings;
             for(auto& ds:dsArray){
@@ -76,8 +86,19 @@ public:
                 .pBindings = bindings.data(),
             };
             descriptorSetLayout = vk::raii::DescriptorSetLayout(device.device, layoutInfo);
-        }
+        }        
+    }
+    
+    
+};
 
+class DescriptorSet{
+public:
+    vk::raii::DescriptorPool descriptorPool = nullptr;
+    std::vector<vk::raii::DescriptorSet> descriptorSets;
+
+
+    void create(Device& device,RenderSync& render,DescriptorSetLayout& dsl,std::vector<Descriptor> dsArray){
         //pool creation
         {
             std::map<vk::DescriptorType,uint32_t> poolsizes;
@@ -105,7 +126,7 @@ public:
             descriptorPool = vk::raii::DescriptorPool(device.device, poolInfo);
         }
         {
-            std::vector<vk::DescriptorSetLayout> layouts(render.MAX_FRAMES_IN_FLIGHT, *descriptorSetLayout);
+            std::vector<vk::DescriptorSetLayout> layouts(render.MAX_FRAMES_IN_FLIGHT, *dsl.descriptorSetLayout);
             vk::DescriptorSetAllocateInfo allocInfo{ 
                 .descriptorPool = descriptorPool, 
                 .descriptorSetCount = static_cast<uint32_t>(layouts.size()), 
@@ -132,7 +153,6 @@ public:
             }
         }
     }
-    
     void use(vk::raii::CommandBuffer& commandBuffer,RenderSync& render, Pipeline& pipeline,uint32_t firstSet = 0){
         commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline.pipelineLayout, firstSet, *descriptorSets[render.getFrameIndex()], nullptr);
     }

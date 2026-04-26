@@ -41,21 +41,28 @@ public:
     Buffer vertexBuffer, indexBuffer;
     Pipeline pipeline;
     Image image,image2;
-    DescriptorSetLayout dsLayout,dsLayout2;
+    DescriptorSetLayout dsLayout;
+    DescriptorSet ds,ds2;
     PushConstant pushConstant;
     void create(Device& device,CommandPool& pool,Swapchain& swapchain,RenderSync& render,DescriptorSetLayout& _dsLayout,std::filesystem::path projectBaseDir,DepthBuffer& depthBuffer,UBO& ubo){
         image.create(pool,projectBaseDir/"assets"/"SingleplayerBtn.png");
         image2.create(pool,projectBaseDir/"assets"/"MultiplayerBtn.png");
-        dsLayout.create(device,render,
+        dsLayout.create(device,
             {
-                DescriptionSet(0,vk::ShaderStageFlagBits::eVertex,ubo),
-                DescriptionSet(1,vk::ShaderStageFlagBits::eFragment,image),
+                DescriptorLayout(0,vk::ShaderStageFlagBits::eVertex,   vk::DescriptorType::eUniformBuffer),
+                DescriptorLayout(1,vk::ShaderStageFlagBits::eFragment, vk::DescriptorType::eCombinedImageSampler),
             }
         );
-        dsLayout2.create(device,render,
+        ds.create(device,render,dsLayout,
             {
-                DescriptionSet(0,vk::ShaderStageFlagBits::eVertex,ubo),
-                DescriptionSet(1,vk::ShaderStageFlagBits::eFragment,image2),
+                Descriptor(0,vk::ShaderStageFlagBits::eVertex,ubo),
+                Descriptor(1,vk::ShaderStageFlagBits::eFragment,image),
+            }
+        );
+        ds2.create(device,render,dsLayout,
+            {
+                Descriptor(0,vk::ShaderStageFlagBits::eVertex,ubo),
+                Descriptor(1,vk::ShaderStageFlagBits::eFragment,image2),
             }
         );
         pushConstant.create();
@@ -72,14 +79,14 @@ public:
 
         pushConstant.use(buffer,pipeline,PushConstantBlock(glm::vec2(1920,1080),glm::vec2(660+150,300),glm::vec2(300,100)));
         
-        dsLayout.use(commandBuffer,render,pipeline);
+        ds.use(commandBuffer,render,pipeline);
         commandBuffer.bindVertexBuffers(0, *vertexBuffer.buffer, {0});
         commandBuffer.bindIndexBuffer(*indexBuffer.buffer, 0, vk::IndexType::eUint16);
         commandBuffer.drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0,0);
         
         pushConstant.use(buffer,pipeline,PushConstantBlock(glm::vec2(1920,1080),glm::vec2(660+150,450),glm::vec2(300,100)));
 
-        dsLayout2.use(commandBuffer,render,pipeline);
+        ds2.use(commandBuffer,render,pipeline);
         commandBuffer.bindVertexBuffers(0, *vertexBuffer.buffer, {0});
         commandBuffer.bindIndexBuffer(*indexBuffer.buffer, 0, vk::IndexType::eUint16);
         commandBuffer.drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0,0);
@@ -144,18 +151,23 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
     Image image;
     UBO ubo;
     DescriptorSetLayout dsLayout;
+    DescriptorSet ds;
     Camera camera;
     DepthBuffer depthBuffer;
     Pipeline pipeline;
     
     image.create(_game.commandPool,projectBaseDir/"assets"/"texture.jpg");
     ubo.create(_game.device,_game.render.MAX_FRAMES_IN_FLIGHT);
-    dsLayout.create(_game.device,_game.render,
+    dsLayout.create(_game.device,
         {
-            DescriptionSet(0,vk::ShaderStageFlagBits::eVertex,ubo),
-            DescriptionSet(1,vk::ShaderStageFlagBits::eFragment,image),
+            DescriptorLayout(0,vk::ShaderStageFlagBits::eVertex  ,vk::DescriptorType::eUniformBuffer),
+            DescriptorLayout(1,vk::ShaderStageFlagBits::eFragment,vk::DescriptorType::eCombinedImageSampler),
         }
     );
+    ds.create(_game.device,_game.render,dsLayout,{
+        Descriptor(0,vk::ShaderStageFlagBits::eVertex,ubo),
+        Descriptor(1,vk::ShaderStageFlagBits::eFragment,image),
+    });
     depthBuffer.create(_game.commandPool,_game.swapchain);
     pipeline.create(_game.device,
         projectBaseDir/"bin"/"slang.spv",
@@ -204,7 +216,7 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
             });
             
             //TODO: learn more about dynamic descriptors
-            dsLayout.use(commandBuffer,_game.render,pipeline);
+            ds.use(commandBuffer,_game.render,pipeline);
     
             
             for (size_t x = 0; x < range; x++){
