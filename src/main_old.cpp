@@ -44,24 +44,21 @@ public:
     DescriptorSetLayout dsLayout;
     DescriptorSet ds,ds2;
     PushConstant pushConstant;
-    void create(Device& device,CommandPool& pool,Swapchain& swapchain,RenderSync& render,DescriptorSetLayout& _dsLayout,std::filesystem::path projectBaseDir,DepthBuffer& depthBuffer,UBO& ubo){
+    void create(Device& device,CommandPool& pool,Swapchain& swapchain,RenderSync& render,DescriptorSetLayout& _dsLayout,std::filesystem::path projectBaseDir,DepthBuffer& depthBuffer){
         image.create(pool,projectBaseDir/"assets"/"SingleplayerBtn.png");
         image2.create(pool,projectBaseDir/"assets"/"MultiplayerBtn.png");
         dsLayout.create(device,
             {
-                DescriptorLayout(0,vk::ShaderStageFlagBits::eVertex,   vk::DescriptorType::eUniformBuffer),
                 DescriptorLayout(1,vk::ShaderStageFlagBits::eFragment, vk::DescriptorType::eCombinedImageSampler),
             }
         );
         ds.create(device,render,dsLayout,
             {
-                Descriptor(0,vk::ShaderStageFlagBits::eVertex,ubo),
                 Descriptor(1,vk::ShaderStageFlagBits::eFragment,image),
             }
         );
         ds2.create(device,render,dsLayout,
             {
-                Descriptor(0,vk::ShaderStageFlagBits::eVertex,ubo),
                 Descriptor(1,vk::ShaderStageFlagBits::eFragment,image2),
             }
         );
@@ -186,7 +183,7 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
     }
 
     GuiSystem gs;
-    gs.create(_game.device,_game.commandPool,_game.swapchain,_game.render,dsLayout,projectBaseDir,depthBuffer,ubo);
+    gs.create(_game.device,_game.commandPool,_game.swapchain,_game.render,dsLayout,projectBaseDir,depthBuffer);
 
     // TODO refactor the following in the future:
     auto recordCommandBuffer = [&](CommandBuffer& CB,uint32_t frameIndex,uint32_t imageIndex)
