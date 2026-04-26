@@ -29,7 +29,7 @@
 
 #include "client/MeshWeaver.hpp"
 #include "FastNoiseLite.h"
-#include "vulkan_old/PushContant.hpp"
+#include "vulkan/PushContant.hpp"
 
 const std::vector<Vertex> vertices = {
     {{0,   0,0.f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
@@ -46,8 +46,23 @@ public:
     Image image,image2;
     DescriptorSetLayout dsLayout;
     DescriptorSet ds,ds2;
+
+    struct PushConstantBlock{
+        glm::vec2 position;
+        glm::vec2 size;
+        PushConstantBlock(glm::vec2 screenSize,glm::vec2 position,glm::vec2 size){
+            this->position = position/screenSize;
+            this->size     = size    /screenSize;
+        }
+    };
     PushConstant pushConstant;
-    void create(Device& device,CommandPool& pool,Swapchain& swapchain,RenderSync& render,DescriptorSetLayout& _dsLayout,std::filesystem::path projectBaseDir,DepthBuffer& depthBuffer){
+    void create(
+        Device& device,
+        CommandPool& pool,
+        Swapchain& swapchain,
+        RenderSync& render,
+        std::filesystem::path projectBaseDir,
+        DepthBuffer& depthBuffer){
         image.create(pool,projectBaseDir/"assets"/"SingleplayerBtn.png");
         image2.create(pool,projectBaseDir/"assets"/"MultiplayerBtn.png");
         dsLayout.create(device,
@@ -65,7 +80,7 @@ public:
                 Descriptor(1,vk::ShaderStageFlagBits::eFragment,image2),
             }
         );
-        pushConstant.create();
+        pushConstant.create(vk::ShaderStageFlagBits::eVertex,0,sizeof(PushConstantBlock));
         pipeline.create(device,projectBaseDir/"bin"/"gui.spv",
             "vertMain","fragMain",swapchain,dsLayout,depthBuffer,false,&pushConstant
         );
@@ -186,7 +201,7 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
     }
 
     GuiSystem gs;
-    gs.create(_game.device,_game.commandPool,_game.swapchain,_game.render,dsLayout,projectBaseDir,depthBuffer);
+    gs.create(_game.device,_game.commandPool,_game.swapchain,_game.render,projectBaseDir,depthBuffer);
 
     // TODO refactor the following in the future:
     auto recordCommandBuffer = [&](CommandBuffer& CB,uint32_t frameIndex,uint32_t imageIndex)

@@ -6,7 +6,7 @@ Game::Game():
     swapchain(deviceSettings)
 {
     instance.create(instanceSettings);
-    window.create(instance,640, 720, "YAVoG");
+    window.create(instance,1280, 720, "YAVoG");
     queue.create(window,deviceSettings);
 
     server.create(gf.directory/"saves"/"example");
