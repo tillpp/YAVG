@@ -70,4 +70,10 @@
         "filesystem": "cpp",
         "codecvt": "cpp"
     },
+    "clangd.arguments": [
+        "--background-index",
+        "--clang-tidy",
+        "--completion-style=detailed",
+        "--compile-commands-dir=build/linux"
+    ]
 }

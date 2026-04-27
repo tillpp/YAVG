@@ -1,5 +1,6 @@
 
 
+#include "GLFW/glfw3.h"
 #include "client/GameFolder.hpp"
 #include "vulkan/setup/Window.hpp"
 #include "vulkan/setup/ValidationLayer.hpp"
@@ -8,12 +9,10 @@
 #include "vulkan/setup/CommandBuffer.hpp"
 #include "vulkan/setup/RenderSync.hpp"
 #include "vulkan/Pipeline.hpp"
-#include "vulkan/DescriptorSetLayout.hpp"
-#include "vulkan/DescriptorSet.hpp"
-#include "vulkan/DescriptorLayout.hpp"
 #include "vulkan/Descriptor.hpp"
 #include "client/Camera.hpp"
 #include "server/Region.hpp"
+#include "Text/DumpText.hpp"
 #include <thread>
 
 #include "client/Game.hpp"
@@ -30,6 +29,7 @@
 #include "client/MeshWeaver.hpp"
 #include "FastNoiseLite.h"
 #include "vulkan/PushContant.hpp"
+
 
 const std::vector<Vertex> vertices = {
     {{0,   0,0.f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
@@ -56,6 +56,8 @@ public:
         }
     };
     PushConstant pushConstant;
+    Font font;
+
     void create(
         Device& device,
         CommandPool& pool,
@@ -66,21 +68,18 @@ public:
 
         image.create(pool,projectBaseDir/"assets"/"SingleplayerBtn.png");
         image2.create(pool,projectBaseDir/"assets"/"MultiplayerBtn.png");
-        dsLayout.create(device,
-            {
-                DescriptorLayout(1,vk::ShaderStageFlagBits::eFragment, vk::DescriptorType::eCombinedImageSampler),
-            }
-        );
-        ds.create(device,render,dsLayout,
-            {
-                Descriptor(1,vk::ShaderStageFlagBits::eFragment,image),
-            }
-        );
-        ds2.create(device,render,dsLayout,
-            {
-                Descriptor(1,vk::ShaderStageFlagBits::eFragment,image2),
-            }
-        );
+        dsLayout.create(device,{
+            DescriptorLayout(1,vk::ShaderStageFlagBits::eFragment, vk::DescriptorType::eCombinedImageSampler),
+        });
+        ds.create(device,render,dsLayout,{
+            Descriptor(1,vk::ShaderStageFlagBits::eFragment,image),
+        });
+        font.loadFromFile(projectBaseDir/"assets"/"fonts"/"unscii-16-full.ttf");
+        font.getGlyph(pool,'@');
+
+        ds2.create(device,render,dsLayout,{
+            Descriptor(1,vk::ShaderStageFlagBits::eFragment,font.image),
+        });
         pushConstant.create(vk::ShaderStageFlagBits::eVertex,0,sizeof(PushConstantBlock));
         pipeline.create(device,projectBaseDir/"bin"/"gui.spv",
             "vertMain","fragMain",swapchain,dsLayout,depthBuffer,false,&pushConstant
@@ -90,7 +89,8 @@ public:
 
         
     }
-    void draw(Window& window,CommandBuffer& buffer,RenderSync& render){
+    void draw(Window& window,Device& device,CommandPool& pool,CommandBuffer& buffer,RenderSync& render){
+
         auto& commandBuffer = buffer.commandBuffer;
 
         pushConstant.use(buffer,pipeline,PushConstantBlock(glm::vec2(1920,1080),glm::vec2(660+150,300),glm::vec2(300,100)));
@@ -174,12 +174,10 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
     
     image.create(_game.commandPool,projectBaseDir/"assets"/"texture.jpg");
     ubo.create(_game.device,_game.render.MAX_FRAMES_IN_FLIGHT);
-    dsLayout.create(_game.device,
-        {
-            DescriptorLayout(0,vk::ShaderStageFlagBits::eVertex  ,vk::DescriptorType::eUniformBuffer),
-            DescriptorLayout(1,vk::ShaderStageFlagBits::eFragment,vk::DescriptorType::eCombinedImageSampler),
-        }
-    );
+    dsLayout.create(_game.device,{
+        DescriptorLayout(0,vk::ShaderStageFlagBits::eVertex  ,vk::DescriptorType::eUniformBuffer),
+        DescriptorLayout(1,vk::ShaderStageFlagBits::eFragment,vk::DescriptorType::eCombinedImageSampler),
+    });
     ds.create(_game.device,_game.render,dsLayout,{
         Descriptor(0,vk::ShaderStageFlagBits::eVertex,ubo),
         Descriptor(1,vk::ShaderStageFlagBits::eFragment,image),
@@ -204,6 +202,7 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
     GuiSystem gs;
     gs.create(_game.device,_game.commandPool,_game.swapchain,_game.render,projectBaseDir,depthBuffer);
 
+    
     // TODO refactor the following in the future:
     auto recordCommandBuffer = [&](CommandBuffer& CB,uint32_t frameIndex,uint32_t imageIndex)
     {
@@ -257,7 +256,7 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
                 .offset = vk::Offset2D{.x = 0,.y = 0},
                 .extent = _game.swapchain.swapChainExtent,
             });
-            gs.draw(_game.window,CB,_game.render);
+            gs.draw(_game.window,_game.device,_game.commandPool,CB,_game.render);
 
         }
         

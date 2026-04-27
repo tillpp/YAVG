@@ -115,8 +115,8 @@ public:
         commandBuffer.endSingleTimeCommands(pool);
     }
 
-    void createTextureImageView(Device& device) {
-        imageView = createImageView(device, vk::Format::eR8G8B8A8Srgb,vk::ImageAspectFlagBits::eColor);
+    void createTextureImageView(Device& device, vk::Format format = vk::Format::eR8G8B8A8Srgb) {
+        imageView = createImageView(device, format,vk::ImageAspectFlagBits::eColor);
 
     }
     vk::raii::ImageView createImageView(Device& device, vk::Format format, vk::ImageAspectFlags aspectFlags) {

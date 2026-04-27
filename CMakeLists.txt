@@ -27,7 +27,7 @@ else()
 endif(WIN32)
 
 set(BIN_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
-
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 FetchContent_Declare(
   glfw
