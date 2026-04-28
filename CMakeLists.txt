@@ -162,12 +162,3 @@ add_slang_shader_target( shaders SOURCES ${SHADER_SLANG_SOURCES} OUT slang)
 add_slang_shader_target( shaders_gui SOURCES ${SHADER_SLANG_SOURCES_GUI} OUT gui)
 add_dependencies(YAVOG shaders)
 add_dependencies(YAVOG shaders_gui)
-
-
-
-if(WIN32)
-    add_custom_command(TARGET YAVOG POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy -t $<TARGET_FILE_DIR:YAVOG> $<TARGET_RUNTIME_DLLS:YAVOG>
-        COMMAND_EXPAND_LISTS
-    )
-endif()

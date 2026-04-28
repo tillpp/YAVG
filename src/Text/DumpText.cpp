@@ -40,8 +40,6 @@ void Font::loadFromFile(std::filesystem::path _path){
         throw std::runtime_error("ERROR::FREETYPE: Failed to load font");
     }
     FT_Set_Pixel_Sizes(face, 0, 48);  
-
-    
 }
 Font::Glyph Font::getGlyph(CommandPool& pool,char c){
     if (FT_Load_Char(face, c, FT_LOAD_RENDER))
