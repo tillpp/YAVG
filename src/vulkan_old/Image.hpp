@@ -17,7 +17,7 @@ public:
     vk::raii::Sampler textureSampler = nullptr;
     void create(CommandPool& pool,std::filesystem::path path){
         //load image
-        int texWidth, texHeight, texChannels;
+        int texWidth = 0, texHeight = 0, texChannels = 0;
         auto pathAsString = path.string();
         stbi_uc* pixels = stbi_load(pathAsString.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
         vk::DeviceSize imageSize = texWidth * texHeight * 4;

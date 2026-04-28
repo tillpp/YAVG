@@ -35,7 +35,7 @@ void Font::loadFromFile(std::filesystem::path _path){
     FT_Done_Face(face);
 
     std::string path = _path.string();
-    if (FT_New_Face(ft, _path.c_str(), 0, &face))
+    if (FT_New_Face(ft, path.c_str(), 0, &face))
     {
         throw std::runtime_error("ERROR::FREETYPE: Failed to load font");
     }

@@ -88,7 +88,7 @@ public:
         vertexBuffer.createVertexBuffer(pool,vertices.data(),vertices.size());
         indexBuffer.createIndexBuffer(pool,indices.data(),indices.size());
 
-        font2.loadFromFile("/home/uni/programming/Yavog/assets/fonts/unscii-16-full.ttf");
+        font2.loadFromFile(projectBaseDir/"assets"/"fonts"/"unscii-16-full.ttf");
         
     }
     Font font2;
