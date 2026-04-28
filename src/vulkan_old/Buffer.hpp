@@ -66,22 +66,22 @@ public:
     }
 public:
     //create vertexBuffer
-    void createVertexBuffer(CommandPool& commandPool,const std::vector<Vertex> vertices){
+    void createVertexBuffer(CommandPool& commandPool,const Vertex* ptr,size_t count){
         Device& device = commandPool.getDevice();
         //create StagingBuffer
         Buffer stagingBuffer;
         {
-            auto size = sizeof(vertices[0]) * vertices.size();
+            auto size = sizeof(ptr[0]) * count;
             auto usage = vk::BufferUsageFlagBits::eTransferSrc;
             auto properties = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent;
             stagingBuffer.createBuffer(device,size, usage,properties);
 
             void* dataStaging = stagingBuffer.bufferMemory.mapMemory(0, size);
-            memcpy(dataStaging, vertices.data(), size);
+            memcpy(dataStaging, ptr ,size);
             stagingBuffer.bufferMemory.unmapMemory();
         }
 
-        auto size = sizeof(vertices[0]) * vertices.size();
+        auto size = sizeof(ptr[0]) * count;
         auto usage = vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst;
         auto properties = vk::MemoryPropertyFlagBits::eDeviceLocal;
         createBuffer(device,size, usage,properties);
@@ -91,22 +91,22 @@ public:
 
     //TODO: a lot of duplicate code with VertexBuffer create
     // create IndexBuffer
-    void createIndexBuffer(CommandPool& commandPool,const std::vector<uint16_t> indices){
+    void createIndexBuffer(CommandPool& commandPool,const uint16_t* ptr,size_t count){
         Device& device = commandPool.getDevice();
         //create StagingBuffer
         Buffer stagingBuffer;
         {
-            auto size = sizeof(indices[0]) * indices.size();
+            auto size = sizeof(ptr[0]) * count;
             auto usage = vk::BufferUsageFlagBits::eTransferSrc;
             auto properties = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent;
             stagingBuffer.createBuffer(device,size, usage,properties);
 
             void* dataStaging = stagingBuffer.bufferMemory.mapMemory(0, size);
-            memcpy(dataStaging, indices.data(), size);
+            memcpy(dataStaging, ptr, size);
             stagingBuffer.bufferMemory.unmapMemory();
         }
 
-        auto size = sizeof(indices[0]) * indices.size();
+        auto size = sizeof(ptr[0]) * count;
         auto usage = vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst;
         auto properties = vk::MemoryPropertyFlagBits::eDeviceLocal;
         createBuffer(device,size, usage,properties);

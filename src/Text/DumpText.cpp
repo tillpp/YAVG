@@ -49,10 +49,13 @@ Font::Glyph Font::getGlyph(CommandPool& pool,char c){
         std::cout << "ERROR::FREETYTPE: Failed to load Glyph" << std::endl;  
         return {};
     }
+    std::cout << (int)c << std::endl;
     int texWidth = face->glyph->bitmap.width;
     int texHeight =  face->glyph->bitmap.rows;
     int texChannels = 1;
     stbi_uc* pixels = face->glyph->bitmap.buffer;
+    if(pixels == nullptr)
+        return {};
     vk::DeviceSize imageSize = texWidth * texHeight * 1;
 
     Buffer stagingBuffer;

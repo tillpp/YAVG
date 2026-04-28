@@ -42,6 +42,7 @@ void Descriptor::writeDescriptorSet(vk::WriteDescriptorSet& wds,size_t frameInFl
             .range   = ubo->size, 
         };
         wds.pBufferInfo = &bufferInfo;
+        
     }
     if(descriptorType == vk::DescriptorType::eCombinedImageSampler){
         imageInfo = { 
@@ -125,6 +126,6 @@ void DescriptorSet::create(Device& device,RenderSync& render,DescriptorSetLayout
         }
     }
 }
-void DescriptorSet::use(vk::raii::CommandBuffer& commandBuffer,RenderSync& render, Pipeline& pipeline,uint32_t firstSet ){
+void DescriptorSet::bind(vk::raii::CommandBuffer& commandBuffer,RenderSync& render, Pipeline& pipeline,uint32_t firstSet ){
     commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline.pipelineLayout, firstSet, *descriptorSets[render.getFrameIndex()], nullptr);
 }

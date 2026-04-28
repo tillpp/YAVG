@@ -13,6 +13,7 @@
 #include "client/Camera.hpp"
 #include "server/Region.hpp"
 #include "Text/DumpText.hpp"
+#include <cstdlib>
 #include <thread>
 
 #include "client/Game.hpp"
@@ -84,39 +85,93 @@ public:
         pipeline.create(device,projectBaseDir/"bin"/"gui.spv",
             "vertMain","fragMain",swapchain,dsLayout,depthBuffer,false,&pushConstant
         );
-        vertexBuffer.createVertexBuffer(pool,vertices);
-        indexBuffer.createIndexBuffer(pool,indices);
+        vertexBuffer.createVertexBuffer(pool,vertices.data(),vertices.size());
+        indexBuffer.createIndexBuffer(pool,indices.data(),indices.size());
 
+        font2.loadFromFile("/home/uni/programming/Yavog/assets/fonts/unscii-16-full.ttf");
         
     }
+    Font font2;
+    uint32_t ogfi;
+    bool reset = false;
+    bool f = true;
     void draw(Window& window,Device& device,CommandPool& pool,CommandBuffer& buffer,RenderSync& render){
 
+        if(glfwGetKey(window, GLFW_KEY_Y) == GLFW_PRESS || reset){
+            auto fi = render.getFrameIndex();
+            if (reset) {
+                if (ogfi == fi) {
+                    reset = false;
+                    goto label;
+                }
+            }else {
+                ogfi = render.getFrameIndex();
+                reset = true;
+
+                if(f)
+                    font2.getGlyph(pool, rand()%96+32);
+                else
+                    font.getGlyph(pool, rand()%96+32);
+            
+                f =! f;    
+            }
+            auto fontUsed = f?&font:&font2;
+            
+            ds2.descriptorSets[fi].clear();
+            vk::DescriptorSetAllocateInfo allocInfo{ 
+                .descriptorPool = ds2.descriptorPool, 
+                .descriptorSetCount = static_cast<uint32_t>(1), 
+                .pSetLayouts = &*dsLayout.descriptorSetLayout, 
+            };
+            ds2.descriptorSets[fi] = std::move(device.device.allocateDescriptorSets(allocInfo).front());
+
+            vk::DescriptorImageInfo imageInfo = { 
+                .sampler     = fontUsed->image.textureSampler, 
+                .imageView   = fontUsed->image.imageView, 
+                .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
+            };
+            vk::WriteDescriptorSet wds{ 
+                .dstSet = ds2.descriptorSets[fi], 
+                .dstBinding = 1, 
+                .dstArrayElement = 0, 
+                .descriptorCount = 1,
+                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+                .pImageInfo = &imageInfo,
+            };
+            device.device.updateDescriptorSets({wds}, {});
+            
+            
+            while(glfwGetKey(window, GLFW_KEY_Y) == GLFW_PRESS){
+                glfwWaitEvents();
+            }
+        }
+        label:
         auto& commandBuffer = buffer.commandBuffer;
 
         pushConstant.use(buffer,pipeline,PushConstantBlock(glm::vec2(1920,1080),glm::vec2(660+150,300),glm::vec2(300,100)));
         
-        ds.use(commandBuffer,render,pipeline);
+        ds.bind(commandBuffer,render,pipeline);
+       
         commandBuffer.bindVertexBuffers(0, *vertexBuffer.buffer, {0});
         commandBuffer.bindIndexBuffer(*indexBuffer.buffer, 0, vk::IndexType::eUint16);
         commandBuffer.drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0,0);
         
         pushConstant.use(buffer,pipeline,PushConstantBlock(glm::vec2(1920,1080),glm::vec2(660+150,450),glm::vec2(300,100)));
 
-        ds2.use(commandBuffer,render,pipeline);
+        ds2.bind(commandBuffer,render,pipeline);
         commandBuffer.bindVertexBuffers(0, *vertexBuffer.buffer, {0});
         commandBuffer.bindIndexBuffer(*indexBuffer.buffer, 0, vk::IndexType::eUint16);
         commandBuffer.drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0,0);
     }
 };
+MeshWeaver mw;
 struct Chunk2{
     Buffer vertexBuffer,indexBuffer;
     std::vector<Vertex> vertices;
     std::vector<uint16_t> indices;
 
     void create(Device& device,CommandPool& pool,FastNoiseLite& noise,size_t xOffset,size_t yOffset,size_t zOffset){
-        MeshWeaver mw;
         {
-            auto t1 = std::chrono::steady_clock::now();
             char* data = new char[33*33*33];
             for (size_t x = 0; x < 33; x++){
                 for (size_t y = 0; y < 33; y++){
@@ -129,16 +184,17 @@ struct Chunk2{
                 }
             }
             
-            auto t2 =  std::chrono::steady_clock::now();
+            auto t1 = std::chrono::steady_clock::now();
             mw.create(data,xOffset,yOffset,zOffset);
+            auto t2 =  std::chrono::steady_clock::now();
             std::cout <<"mesh generation time:"<< std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count()<<"µs" <<std::endl;
         }
         vertices = *(std::vector<Vertex>*)&mw.vertices; // me being a bad boy. Because i am lazy.
         indices = mw.index;
 
         if(indices.size()){
-            vertexBuffer.createVertexBuffer(pool,vertices);
-            indexBuffer.createIndexBuffer(pool,indices);
+            vertexBuffer.createVertexBuffer(pool,vertices.data(),vertices.size());
+            indexBuffer.createIndexBuffer(pool,indices.data(),indices.size());
         }
     }
     void draw(CommandBuffer& buffer){
@@ -231,7 +287,7 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
             });
             
             //TODO: learn more about dynamic descriptors
-            ds.use(commandBuffer,_game.render,pipeline);
+            ds.bind(commandBuffer,_game.render,pipeline);
     
             
             for (size_t x = 0; x < range; x++){

@@ -54,6 +54,6 @@ public:
 
 
     void create(Device& device,RenderSync& render,DescriptorSetLayout& dsl,std::vector<Descriptor> dsArray);
-    void use(vk::raii::CommandBuffer& commandBuffer,RenderSync& render, class Pipeline& pipeline,uint32_t firstSet = 0);
+    void bind(vk::raii::CommandBuffer& commandBuffer,RenderSync& render, class Pipeline& pipeline,uint32_t firstSet = 0);
 };
 
