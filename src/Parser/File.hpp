@@ -1,7 +1,9 @@
 #pragma once
 #include <vector>
 #include <filesystem>
-#include <fstream>
+#include <zconf.h>
 
-std::vector<char> readFile(const std::filesystem::path& filename);
-void writeFile(std::vector<char> data,const std::filesystem::path& filename);
+bool readFile(const std::filesystem::path& filename,std::vector<char>& data);
+std::vector<char> readFileOrThrow(const std::filesystem::path& filename);
+bool writeFile(const std::filesystem::path& filename,std::vector<char> data);
+void writeFileOrThrow(const std::filesystem::path& filename,std::vector<char> data);

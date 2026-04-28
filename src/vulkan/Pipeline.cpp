@@ -23,7 +23,7 @@ void Pipeline::create(
 ) {
 
     // shader
-    vk::raii::ShaderModule shaderModule = createShaderModule(device,readFile(shaderFile));
+    vk::raii::ShaderModule shaderModule = createShaderModule(device,readFileOrThrow(shaderFile));
     vk::PipelineShaderStageCreateInfo vertShaderStageInfo{ 
         .stage = vk::ShaderStageFlagBits::eVertex,
         .module = shaderModule,

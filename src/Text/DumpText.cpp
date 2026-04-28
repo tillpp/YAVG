@@ -76,7 +76,7 @@ Font::Glyph Font::getGlyph(CommandPool& pool,char c){
     };
     return glyph;
 }
-void Text::setString(Font& font,std::string string){
+void Text::setString(Font& font,std::u8string string){
     for (size_t i = 0; i < string.size(); i++){
 
     }

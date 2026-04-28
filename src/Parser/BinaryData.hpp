@@ -1,5 +1,8 @@
 #pragma once 
-#include <string>
+#include <bit>
+#include <cmath>
+#include <cstdint>
+#include <cstring>
 #include <assert.h>
 #include "Byteswap.hpp"
 #include "File.hpp"
@@ -30,13 +33,13 @@ class BinaryData
     std::vector<char> content;
     size_t i = 0;
 public:
-    void writeToFile(std::filesystem::path path){
-        writeFile(content,path);      
+    [[nodiscard]] bool writeToFile(std::filesystem::path path){
+        return writeFile(path,content);      
     }
-    void readFromFile(std::filesystem::path path){
-        readBytes(readFile(path));        
+    [[nodiscard]] bool readFromFile(std::filesystem::path path){
+        return readFile(path,content);
     }
-    void readBytes(std::vector<char> s){
+    void writeBytes(std::vector<char> s){
         content.insert(content.end(),s.begin(),s.end());
     }
 
@@ -96,6 +99,57 @@ public:
     void writeU64(uint64_t data){
         write<uint64_t>(data);
     }
+    bool readVarUint(uint64_t& t){
+        uint64_t value = 0;
+        uint8_t first = 0;
+        do {
+            if(!readU8(first))
+                return false;
+            value <<= 7;
+            value += first & 0x7f;
+        }while (first & 0x80);
+        t = first;
+        return true;
+    }
+    void writeVarUint(uint64_t data){
+        size_t bitWidth = std::bit_width(data);
+        //bitWidth has to be divisible by 7
+        if(bitWidth%7)
+            bitWidth += 7-bitWidth%7;
+
+        data <<= 64-bitWidth;
+        while (data) {
+            uint8_t v = data >> (64-7);
+            data <<= 7;
+            if(data){
+                v &= 0x80;
+                writeU8(v);
+            }else{
+                writeU8(v);
+            }
+        }   
+    }
+    bool readString(std::u8string& str){
+        size_t size;
+        if(!readVarUint(size))
+            return false;
+        std::u8string s;
+        for (int i = 0; i<size; i++) {
+            uint8_t c;
+            if(!readU8(c))
+                return false;
+            s.push_back(c);
+        }
+        str = s;
+        return true;
+    }
+    void writeString(const std::u8string& str){
+        writeVarUint(str.length());
+        for (int i = 0; i<str.length(); i++) {
+            writeU8(str[i]);
+        }
+    }
+
     void    writef32(float data){
         write<float>(data);
     }

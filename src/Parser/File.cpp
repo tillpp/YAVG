@@ -1,22 +1,38 @@
 #include "File.hpp"
+#include <cstdio>
+#include <fstream>
 
-std::vector<char> readFile(const std::filesystem::path& filename) {
+bool readFile(const std::filesystem::path& filename,std::vector<char>& data){
     std::ifstream file(filename, std::ios::ate | std::ios::binary);
     if (!file.is_open()) {
-        throw std::runtime_error("failed to open file!");
+        return false;
     }
     std::vector<char> buffer(file.tellg());
     file.seekg(0, std::ios::beg);
     file.read(buffer.data(), static_cast<std::streamsize>(buffer.size()));
     file.close();
 
-    return buffer;
+    data.insert(data.end(), buffer.begin(), buffer.end());
+    return true;
 }
-void writeFile(std::vector<char> buffer,const std::filesystem::path& filename){
+std::vector<char> readFileOrThrow(const std::filesystem::path& filename){
+    std::vector<char> data;
+    if(!readFile(filename,data)){
+        throw std::runtime_error("failed to read file :"+filename.string());
+    }
+    return data;
+}
+bool writeFile(const std::filesystem::path& filename,std::vector<char> data){
     std::ofstream file(filename, std::ios::out | std::ios::binary);
     if (!file.is_open()) {
-        throw std::runtime_error("failed to open file!");
+        return false;
     }
-    file.write(buffer.data(), static_cast<std::streamsize>(buffer.size()));
+    file.write(data.data(), static_cast<std::streamsize>(data.size()));
     file.close();
+    return true;
+}
+void writeFileOrThrow(std::vector<char> data,const std::filesystem::path& filename){
+    if(!writeFile(filename,data)){
+        throw std::runtime_error("failed to write file :"+filename.string());
+    }
 }

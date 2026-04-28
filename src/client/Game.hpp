@@ -7,7 +7,7 @@
 #include "vulkan/setup/Swapchain.hpp"
 #include "vulkan/setup/CommandPool.hpp"
 #include "vulkan/setup/RenderSync.hpp"
-#include "server/Server.hpp"
+#include "server/World.hpp"
 #include "GameFolder.hpp"
 
 class Game
@@ -25,7 +25,7 @@ public:
     RenderSync render;
 
     GameFolder gf;
-    Server server;
+    World world;
     
     std::filesystem::path projectBaseDir;
     Game(std::filesystem::path projectBaseDir);

@@ -289,7 +289,6 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
             //TODO: learn more about dynamic descriptors
             ds.bind(commandBuffer,_game.render,pipeline);
     
-            
             for (size_t x = 0; x < range; x++){
                 for (size_t y = 0; y < range; y++){
                     for (size_t z = 0; z < range; z++){
@@ -298,6 +297,7 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
                 }
             }
         }
+        
         {
             commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *gs.pipeline.graphicsPipeline);
             commandBuffer.setViewport(0, vk::Viewport{
@@ -361,7 +361,7 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
                 float delta = std::chrono::duration<float, std::chrono::seconds::period>(now - lastFrame).count();
                 if(delta < 1.f/FPSLimit){
                     float waittime = 1.f/FPSLimit-delta;
-                    std::this_thread::sleep_for(std::chrono::milliseconds((int)(waittime*1000)));
+                    //std::this_thread::sleep_for(std::chrono::milliseconds((int)(waittime*1000)));
                 }
             }
 

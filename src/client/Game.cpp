@@ -10,7 +10,8 @@ Game::Game(std::filesystem::path projectBaseDir):
     window.create(instance,1280, 720, "YAVoG");
     queue.create(window,deviceSettings);
 
-    server.create(gf.directory/"saves"/"example");
+    //world.create(gf.directory/"saves"/"example");
+    world.create(projectBaseDir/"world");
 
     // Create a chain of feature structures
     vk::PhysicalDeviceFeatures2 a{.features = {.samplerAnisotropy = true}};// vk::PhysicalDeviceFeatures2 (empty for now)

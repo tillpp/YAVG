@@ -29,10 +29,10 @@ public:
 };
 
 class Text{
-    std::string string;
+    std::u32string string;
 public:
     
-    void setString(Font& font,std::string string);
+    void setString(Font& font,std::u8string string);
 
 };
 
