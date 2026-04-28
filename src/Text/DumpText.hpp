@@ -5,6 +5,7 @@
 #include FT_FREETYPE_H  
 #include "vulkan/setup/CommandPool.hpp"
 #include "vulkan_old/Image.hpp"
+#include "Text/TexturePacker.hpp"
 
 /*
     Can only represent ASCII characters. 
@@ -13,6 +14,7 @@ class Font
 {
     FT_Face face = nullptr;
 public:
+    TexturePacker texturePacker;
 
     Image image;
     

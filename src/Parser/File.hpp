@@ -1,7 +1,6 @@
 #pragma once
 #include <vector>
 #include <filesystem>
-#include <zconf.h>
 
 bool readFile(const std::filesystem::path& filename,std::vector<char>& data);
 std::vector<char> readFileOrThrow(const std::filesystem::path& filename);

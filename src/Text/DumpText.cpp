@@ -1,4 +1,5 @@
 #include "DumpText.hpp"
+#include "Text/TexturePacker.hpp"
 #include <exception>
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
@@ -22,7 +23,7 @@ void deinitFreetype(){
     }
 };
 
-Font::Font()
+Font::Font():texturePacker(glm::ivec2(0,0))
 {
     initFreetype();
 }

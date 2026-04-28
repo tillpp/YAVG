@@ -1,23 +1,17 @@
 
 
 #include "GLFW/glfw3.h"
-#include "client/GameFolder.hpp"
 #include "vulkan/setup/Window.hpp"
-#include "vulkan/setup/ValidationLayer.hpp"
-#include "vulkan/setup/GraphicsQueue.hpp"
 #include "vulkan/setup/Device.hpp"
 #include "vulkan/setup/CommandBuffer.hpp"
 #include "vulkan/setup/RenderSync.hpp"
 #include "vulkan/Pipeline.hpp"
 #include "vulkan/Descriptor.hpp"
 #include "client/Camera.hpp"
-#include "server/Region.hpp"
 #include "Text/DumpText.hpp"
 #include <cstdlib>
-#include <thread>
 
 #include "client/Game.hpp"
-#include <array>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -378,7 +372,6 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
     }
     _game.device.device.waitIdle();
 }
-
 int main(int argc, char const *argv[]){
     auto projectBaseDir = std::filesystem::canonical(argv[0]).parent_path().parent_path().parent_path();
     try{
