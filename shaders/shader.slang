@@ -29,17 +29,15 @@ VertexOutput vertMain(VSInput input,uint vid : SV_VertexID,uint iid :SV_Instance
     return output;
 }
 
-Sampler2D texture;
-
 [shader("fragment")]
 float4 fragMain(VertexOutput inVert) : SV_Target
 {
     float3 color = inVert.color;
-
+    
     float3 dx = ddx(inVert.pos);
     float3 dy = ddy(inVert.pos);
     float3 normal = normalize(cross(dx, dy));
-
+    
     float invsqrt2 = 0.70710678118;
     if (normal.y > invsqrt2) {
         color *= 0.5;

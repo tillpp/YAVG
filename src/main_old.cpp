@@ -218,11 +218,11 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
     ubo.create(_game.device,_game.render.MAX_FRAMES_IN_FLIGHT);
     dsLayout.create(_game.device,{
         DescriptorLayout(0,vk::ShaderStageFlagBits::eVertex  ,vk::DescriptorType::eUniformBuffer),
-        DescriptorLayout(1,vk::ShaderStageFlagBits::eFragment,vk::DescriptorType::eCombinedImageSampler),
+        //DescriptorLayout(1,vk::ShaderStageFlagBits::eFragment,vk::DescriptorType::eCombinedImageSampler),
     });
     ds.create(_game.device,_game.render,dsLayout,{
         Descriptor(0,vk::ShaderStageFlagBits::eVertex,ubo),
-        Descriptor(1,vk::ShaderStageFlagBits::eFragment,image),
+        //Descriptor(1,vk::ShaderStageFlagBits::eFragment,image),
     });
     depthBuffer.create(_game.commandPool,_game.swapchain);
     pipeline.create(_game.device,
@@ -230,7 +230,7 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
         "vertMain","fragMain",
         _game.swapchain, dsLayout,depthBuffer);
 
-    const size_t range = 5;
+    const size_t range = 3;
     Chunk2 chunk[range][range][range];
     for (size_t x = 0; x < range; x++){
         for (size_t y = 0; y < range; y++){
@@ -284,7 +284,7 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
                 }
             }
         }
-        if(false)
+    
         {
             commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *gs.pipeline.graphicsPipeline);
             commandBuffer.setViewport(0, vk::Viewport{
