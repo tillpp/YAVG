@@ -26,7 +26,7 @@ struct PushConstants {
 [shader("vertex")]
 VertexOutput vertMain(VSInput input,uint vid : SV_VertexID,uint iid :SV_InstanceID) {
     VertexOutput output;
-    output.sv_position = float4(float3(input.inPosition.x * pc.size.x * 2 + pc.pos.x * 2 - 1, input.inPosition.z * pc.size.y * 2 + pc.pos.y * 2-1, 0), 1.0);
+    output.sv_position = float4(float3(input.inPosition.xz * pc.size.xy * 2 + pc.pos.xy*2 - float2(1), 0), 1.0);
     output.color = input.inColor;
     output.fragTexCoord = input.inTexCoord;
     return output;

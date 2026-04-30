@@ -70,3 +70,6 @@ TexturePacker::Response TexturePacker::request(glm::ivec2 glyphSize){
     res.newSize  = size;
     return res;
 }
+glm::ivec2 TexturePacker::getSize()const{
+    return size;
+}

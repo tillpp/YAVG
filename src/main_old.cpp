@@ -9,7 +9,10 @@
 #include "vulkan/Descriptor.hpp"
 #include "client/Camera.hpp"
 #include "Text/DumpText.hpp"
+#include <chrono>
 #include <cstdlib>
+#include <ratio>
+#include <thread>
 
 #include "client/Game.hpp"
 
@@ -41,7 +44,7 @@ public:
     Image image,image2;
     DescriptorSetLayout dsLayout;
     DescriptorSet ds,ds2;
-
+    Text text;
     struct PushConstantBlock{
         glm::vec2 position;
         glm::vec2 size;
@@ -70,7 +73,8 @@ public:
             Descriptor(1,vk::ShaderStageFlagBits::eFragment,image),
         });
         font.loadFromFile(projectBaseDir/"assets"/"fonts"/"unscii-16-full.ttf");
-        font.getGlyph(pool,'@');
+        font.getGlyph(pool,render.getFrameIndex(),'-');
+        text.setString(font, pool, render.getFrameIndex(), u8"Hello world!");
 
         ds2.create(device,render,dsLayout,{
             Descriptor(1,vk::ShaderStageFlagBits::eFragment,font.image),
@@ -81,36 +85,13 @@ public:
         );
         vertexBuffer.createVertexBuffer(pool,vertices.data(),vertices.size());
         indexBuffer.createIndexBuffer(pool,indices.data(),indices.size());
-
-        font2.loadFromFile(projectBaseDir/"assets"/"fonts"/"unscii-16-full.ttf");
-        
     }
-    Font font2;
     uint32_t ogfi;
     bool reset = false;
     bool f = true;
     void draw(Window& window,Device& device,CommandPool& pool,CommandBuffer& buffer,RenderSync& render){
-
-        if(glfwGetKey(window, GLFW_KEY_Y) == GLFW_PRESS || reset){
-            auto fi = render.getFrameIndex();
-            if (reset) {
-                if (ogfi == fi) {
-                    reset = false;
-                    goto label;
-                }
-            }else {
-                ogfi = render.getFrameIndex();
-                reset = true;
-
-                if(f)
-                    font2.getGlyph(pool, rand()%96+32);
-                else
-                    font.getGlyph(pool, rand()%96+32);
-            
-                f =! f;    
-            }
-            auto fontUsed = f?&font:&font2;
-            
+        auto fi = render.getFrameIndex();
+        if(font.legacy.size()){
             ds2.descriptorSets[fi].clear();
             vk::DescriptorSetAllocateInfo allocInfo{ 
                 .descriptorPool = ds2.descriptorPool, 
@@ -120,8 +101,8 @@ public:
             ds2.descriptorSets[fi] = std::move(device.device.allocateDescriptorSets(allocInfo).front());
 
             vk::DescriptorImageInfo imageInfo = { 
-                .sampler     = fontUsed->image.textureSampler, 
-                .imageView   = fontUsed->image.imageView, 
+                .sampler     = font.image.textureSampler, 
+                .imageView   = font.image.imageView, 
                 .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
             };
             vk::WriteDescriptorSet wds{ 
@@ -133,16 +114,22 @@ public:
                 .pImageInfo = &imageInfo,
             };
             device.device.updateDescriptorSets({wds}, {});
-            
-            
-            while(glfwGetKey(window, GLFW_KEY_Y) == GLFW_PRESS){
-                glfwWaitEvents();
-            }
+            if(font.legacy.contains(fi))
+                font.legacy.erase(render.getFrameIndex());
         }
-        label:
+        if(glfwGetKey(window, GLFW_KEY_Y)){
+            
+            char c = 32+rand()%96;
+            font.getGlyph(pool, render.getFrameIndex(), c);
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            // while(glfwGetKey(window, GLFW_KEY_Y)){
+            //     glfwWaitEvents();
+            // }
+        }
         auto& commandBuffer = buffer.commandBuffer;
 
-        pushConstant.use(buffer,pipeline,PushConstantBlock(glm::vec2(1920,1080),glm::vec2(660+150,300),glm::vec2(300,100)));
+        pushConstant.use(buffer,pipeline,PushConstantBlock(glm::vec2(1920,1080),glm::vec2(660+150,100),glm::vec2(300,100)));
         
         ds.bind(commandBuffer,render,pipeline);
        
@@ -150,12 +137,12 @@ public:
         commandBuffer.bindIndexBuffer(*indexBuffer.buffer, 0, vk::IndexType::eUint16);
         commandBuffer.drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0,0);
         
-        pushConstant.use(buffer,pipeline,PushConstantBlock(glm::vec2(1920,1080),glm::vec2(660+150,450),glm::vec2(300,100)));
+        pushConstant.use(buffer,pipeline,PushConstantBlock(glm::vec2(1920,1080),glm::vec2(660,300),glm::vec2(60,60)));
 
         ds2.bind(commandBuffer,render,pipeline);
-        commandBuffer.bindVertexBuffers(0, *vertexBuffer.buffer, {0});
-        commandBuffer.bindIndexBuffer(*indexBuffer.buffer, 0, vk::IndexType::eUint16);
-        commandBuffer.drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0,0);
+        commandBuffer.bindVertexBuffers(0, *text.buffer.buffer, {0});
+        //commandBuffer.bindIndexBuffer(*indexBuffer.buffer, 0, vk::IndexType::eUint16);
+        commandBuffer.draw(static_cast<uint32_t>(text.vertexCount), 1, 0, 0);
     }
 };
 MeshWeaver mw;

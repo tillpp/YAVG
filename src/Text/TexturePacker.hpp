@@ -1,4 +1,5 @@
 #pragma once
+#include "glm/ext/vector_int2.hpp"
 #include <glm/glm.hpp>
 #include <limits>
 
@@ -37,5 +38,7 @@ public:
     /// @param glyphSize
     /// @return 
     Response request(glm::ivec2 glyphSize);
+
+    glm::ivec2 getSize()const;
 };
 
