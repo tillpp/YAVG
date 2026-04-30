@@ -9,7 +9,7 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H  
 #include "vulkan/setup/CommandPool.hpp"
-#include "vulkan_old/Image.hpp"
+#include "vulkan_old/Image2.hpp"
 #include "Text/TexturePacker.hpp"
 
 /*
