@@ -257,6 +257,7 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
         ubo.updateUniformBuffer(frameIndex,aspectRatio, zoom,camera.pos,camera.forward);
 
         auto& commandBuffer = CB.commandBuffer;
+        
         {
             commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline.graphicsPipeline);
             commandBuffer.setViewport(0, vk::Viewport{
@@ -283,7 +284,7 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
                 }
             }
         }
-        
+        if(false)
         {
             commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *gs.pipeline.graphicsPipeline);
             commandBuffer.setViewport(0, vk::Viewport{
@@ -331,25 +332,25 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
         }
         
         //FRAMERATE STUFF
-        auto now = std::chrono::steady_clock::now();
-        if(std::chrono::duration_cast<std::chrono::milliseconds>(now-lastSecond).count()>=1000){
-            float frameTime = std::chrono::duration<float, std::chrono::microseconds::period>(now - lastFrame).count();
-            std::cout << "[FPS]" << frames <<" "<< frameTime <<"µs"<< std::endl;
-            frames = 0;
-            lastSecond = now;
-        }
-        frames++;
         float delta;
         {
-            {
-                const int FPSLimit = 120;
-                auto now = std::chrono::steady_clock::now();
-                float delta = std::chrono::duration<float, std::chrono::seconds::period>(now - lastFrame).count();
-                if(delta < 1.f/FPSLimit){
-                    float waittime = 1.f/FPSLimit-delta;
-                    //std::this_thread::sleep_for(std::chrono::milliseconds((int)(waittime*1000)));
-                }
+            auto now = std::chrono::steady_clock::now();
+            if(std::chrono::duration_cast<std::chrono::milliseconds>(now-lastSecond).count()>=1000){
+                float frameTime = std::chrono::duration<float, std::chrono::microseconds::period>(now - lastFrame).count();
+                std::cout << "[FPS]" << frames << std::endl;
+                frames = 0;
+                lastSecond = now;
             }
+            frames++;
+            // {
+            //     const int FPSLimit = 120;
+            //     auto now = std::chrono::steady_clock::now();
+            //     float delta = std::chrono::duration<float, std::chrono::seconds::period>(now - lastFrame).count();
+            //     if(delta < 1.f/FPSLimit){
+            //         float waittime = 1.f/FPSLimit-delta;
+            //         //std::this_thread::sleep_for(std::chrono::milliseconds((int)(waittime*1000)));
+            //     }
+            // }
 
             auto currentTime = std::chrono::steady_clock::now();
             delta = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - lastFrame).count();

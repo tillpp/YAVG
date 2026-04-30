@@ -38,5 +38,5 @@ Sampler2D texture;
 float4 fragMain(VertexOutput inVert) : SV_Target
 {
     float3 color = texture.Sample(inVert.fragTexCoord).xyz; // inVert.color
-    return float4(float3(color.r),1);
+    return float4(float3(1),color.r);
 }
