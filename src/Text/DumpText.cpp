@@ -53,20 +53,29 @@ void Font::loadFromFile(std::filesystem::path _path){
     FT_Set_Pixel_Sizes(face, 0, 48);  
 }
 Font::Glyph Font::getGlyph(CommandPool& pool,size_t frameIndex,uint32_t c){
+    if(glyphs.contains(c))
+        return glyphs[c];
     if (FT_Load_Char(face, c, FT_LOAD_RENDER))
     {
         std::cout << "ERROR::FREETYTPE: Failed to load Glyph" << std::endl;  
         return {};
     }
-    if(glyphs.contains(c))
-        return glyphs[c];
-
+    
     int texWidth = face->glyph->bitmap.width;
     int texHeight =  face->glyph->bitmap.rows;
     int texChannels = 1;
     stbi_uc* pixels = face->glyph->bitmap.buffer;
-    if(pixels == nullptr)
-        return {};
+    if(!pixels){
+        Glyph glyph{
+        .texPos  = glm::ivec2(0),
+        .texSize = glm::ivec2(0),
+        .size   = glm::ivec2(face->glyph->metrics.width/64.f,face->glyph->metrics.height/64.f),
+        .advance = face->glyph->advance.x/64.f,
+        .bearing = glm::vec2(face->glyph->metrics.horiBearingX,face->glyph->metrics.horiBearingY)/64.f,
+        };
+        glyphs[c] = glyph;
+        return  glyph;
+    }
     vk::DeviceSize imageSize = texWidth * texHeight * 1;
 
     Buffer stagingBuffer;
@@ -167,7 +176,8 @@ Font::Glyph Font::getGlyph(CommandPool& pool,size_t frameIndex,uint32_t c){
         .texPos  = glm::ivec2(resp.position),
         .texSize = glm::ivec2(texWidth,texHeight),
         .size   = glm::ivec2(face->glyph->metrics.width/64.f,face->glyph->metrics.height/64.f),
-        .advance = face->glyph->metrics.vertAdvance/64.f,
+        .advance = face->glyph->advance.x/64.f,
+        .bearing = glm::vec2(face->glyph->metrics.horiBearingX,face->glyph->metrics.horiBearingY)/64.f,
     };
     glyphs[c] = glyph;
     return glyph;
@@ -185,7 +195,7 @@ void Text::setString(Font& font,CommandPool& pool,size_t frameIndex,std::u8strin
         glm::vec2 texPos  = glm::vec2(glyph.texPos)/glm::vec2(font.texturePacker.getSize());
         glm::vec2 texEnd = glm::vec2(glyph.texSize+glyph.texPos)/glm::vec2(font.texturePacker.getSize());
         
-        glm::vec2 pos = glm::vec2(0,0);
+        glm::vec2 pos = glm::vec2(glyph.bearing.x,48-glyph.bearing.y)/48.f;
         glm::vec2 size = glm::vec2(glyph.size)/48.f;
         pos.x += advance;
         glm::vec2 end = pos+size;

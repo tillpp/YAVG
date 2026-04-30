@@ -24,6 +24,7 @@ public:
         glm::ivec2 texSize = glm::ivec2(0);
         glm::vec2  size;
         float advance;
+        glm::vec2 bearing;
     };    
 private:
     FT_Face face = nullptr;
