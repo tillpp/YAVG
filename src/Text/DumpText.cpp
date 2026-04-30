@@ -8,7 +8,9 @@
 #include "vulkan/vulkan.hpp"
 #include "vulkan_old/Buffer.hpp"
 #include <cstdint>
+#include <cuchar>
 #include <exception>
+#include <string>
 #include <utility>
 #include <vector>
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -182,10 +184,29 @@ Font::Glyph Font::getGlyph(CommandPool& pool,size_t frameIndex,uint32_t c){
     glyphs[c] = glyph;
     return glyph;
 }
-void Text::setString(Font& font,CommandPool& pool,size_t frameIndex,std::u8string string){
+void Text::setString(Font& font,CommandPool& pool,size_t frameIndex,std::u8string str){
     std::vector<Vertex> vertices;
     std::vector<Font::Glyph> glyphs;
-    for (auto& c : string) {
+    
+    std::u32string u32string;
+    //convert u8 to u32string:
+    {
+        std::mbstate_t state{}; 
+        char32_t c32;
+        const char* ptr = (char*)(str.data()), *end = (char*)str.data() + str.size() + 1;
+
+        while (std::size_t rc = std::mbrtoc32(&c32, ptr, end - ptr, &state))
+        {
+            assert(rc != (std::size_t) - 3);
+            if (rc == (std::size_t) - 1)
+                break;
+            if (rc == (std::size_t) - 2)
+                break;
+            ptr += rc;
+            u32string += c32;
+        }
+    }
+    for (auto& c : u32string) {
         auto glyph = font.getGlyph(pool, frameIndex, c);
         glyphs.push_back(glyph);
     }

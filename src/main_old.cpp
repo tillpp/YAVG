@@ -75,7 +75,7 @@ public:
         });
         font.loadFromFile(projectBaseDir/"assets"/"fonts"/"unscii-16-full.ttf");
         font.getGlyph(pool,render.getFrameIndex(),'-');
-        text.setString(font, pool, render.getFrameIndex(), u8"This is a Text Rendering test!");
+        text.setString(font, pool, render.getFrameIndex(), u8"This is a Text Rendering tüst!");
 
         ds2.create(device,render,dsLayout,{
             Descriptor(1,vk::ShaderStageFlagBits::eFragment,font.image),
