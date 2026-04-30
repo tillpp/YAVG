@@ -41,6 +41,7 @@ class GuiSystem{
 public:
     Buffer vertexBuffer, indexBuffer;
     Pipeline pipeline;
+    Pipeline pipelineText;
     Image image,image2;
     DescriptorSetLayout dsLayout;
     DescriptorSet ds,ds2;
@@ -74,13 +75,16 @@ public:
         });
         font.loadFromFile(projectBaseDir/"assets"/"fonts"/"unscii-16-full.ttf");
         font.getGlyph(pool,render.getFrameIndex(),'-');
-        text.setString(font, pool, render.getFrameIndex(), u8"Hello world!");
+        text.setString(font, pool, render.getFrameIndex(), u8"This is a Text Rendering test!");
 
         ds2.create(device,render,dsLayout,{
             Descriptor(1,vk::ShaderStageFlagBits::eFragment,font.image),
         });
         pushConstant.create(vk::ShaderStageFlagBits::eVertex,0,sizeof(PushConstantBlock));
         pipeline.create(device,projectBaseDir/"bin"/"gui.spv",
+            "vertMain","fragMain",swapchain,dsLayout,depthBuffer,false,&pushConstant
+        );
+        pipelineText.create(device,projectBaseDir/"bin"/"text.spv",
             "vertMain","fragMain",swapchain,dsLayout,depthBuffer,false,&pushConstant
         );
         vertexBuffer.createVertexBuffer(pool,vertices.data(),vertices.size());
@@ -137,9 +141,10 @@ public:
         commandBuffer.bindIndexBuffer(*indexBuffer.buffer, 0, vk::IndexType::eUint16);
         commandBuffer.drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0,0);
         
-        pushConstant.use(buffer,pipeline,PushConstantBlock(glm::vec2(1920,1080),glm::vec2(660,300),glm::vec2(60,60)));
+        commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineText.graphicsPipeline);
+        pushConstant.use(buffer,pipelineText,PushConstantBlock(glm::vec2(1920,1080),glm::vec2(660,300),glm::vec2(60,60)));
 
-        ds2.bind(commandBuffer,render,pipeline);
+        ds2.bind(commandBuffer,render,pipelineText);
         commandBuffer.bindVertexBuffers(0, *text.buffer.buffer, {0});
         //commandBuffer.bindIndexBuffer(*indexBuffer.buffer, 0, vk::IndexType::eUint16);
         commandBuffer.draw(static_cast<uint32_t>(text.vertexCount), 1, 0, 0);

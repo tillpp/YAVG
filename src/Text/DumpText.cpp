@@ -67,11 +67,11 @@ Font::Glyph Font::getGlyph(CommandPool& pool,size_t frameIndex,uint32_t c){
     stbi_uc* pixels = face->glyph->bitmap.buffer;
     if(!pixels){
         Glyph glyph{
-        .texPos  = glm::ivec2(0),
-        .texSize = glm::ivec2(0),
-        .size   = glm::ivec2(face->glyph->metrics.width/64.f,face->glyph->metrics.height/64.f),
-        .advance = face->glyph->advance.x/64.f,
-        .bearing = glm::vec2(face->glyph->metrics.horiBearingX,face->glyph->metrics.horiBearingY)/64.f,
+            .texPos  = glm::ivec2(0),
+            .texSize = glm::ivec2(0),
+            .size   = glm::ivec2(face->glyph->metrics.width/64.f,face->glyph->metrics.height/64.f),
+            .advance = face->glyph->advance.x/64.f,
+            .bearing = glm::vec2(face->glyph->metrics.horiBearingX,face->glyph->metrics.horiBearingY)/64.f,
         };
         glyphs[c] = glyph;
         return  glyph;
