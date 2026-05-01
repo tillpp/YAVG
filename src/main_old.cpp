@@ -2,6 +2,7 @@
 
 #include "GLFW/glfw3.h"
 #include "client/FPSMessurement.hpp"
+#include "glm/ext/vector_float2.hpp"
 #include "vulkan/DescriptorLayout.hpp"
 #include "vulkan/setup/Window.hpp"
 #include "vulkan/setup/Device.hpp"
@@ -61,7 +62,19 @@ public:
             this->size     = size    /screenSize;
         }
     };
+    struct PushConstantBlockText{
+        glm::vec2 position;
+        glm::vec2 size;
+        glm::ivec2 textAtlas;
+        PushConstantBlockText(glm::vec2 screenSize,glm::vec2 position,glm::vec2 size,glm::ivec2 textureAtlasSize){
+            this->position = position/screenSize;
+            this->size     = size    /screenSize;
+            this->textAtlas = textureAtlasSize;
+        }
+
+    };
     PushConstant pushConstant;
+    PushConstant pushConstantText;
     Font font;
     std::u32string string;
 
@@ -92,8 +105,9 @@ public:
         pipeline.create(device,projectBaseDir/"bin"/"gui.spv",
             "vertMain","fragMain",swapchain,dsLayout,depthBuffer,false,&pushConstant
         );
+        pushConstantText.create(vk::ShaderStageFlagBits::eVertex,0,sizeof(PushConstantBlockText));
         pipelineText.create(device,projectBaseDir/"bin"/"text.spv",
-            "vertMain","fragMain",swapchain,dsLayout,depthBuffer,false,&pushConstant
+            "vertMain","fragMain",swapchain,dsLayout,depthBuffer,false,&pushConstantText
         );
         vertexBuffer.createVertexBuffer(pool,vertices.data(),vertices.size());
         indexBuffer.createIndexBuffer(pool,indices.data(),indices.size());
@@ -152,10 +166,9 @@ public:
 
         size_t i = 0;
         for (auto& text : texts) {
-            pushConstant.use(buffer,pipelineText,PushConstantBlock(glm::vec2(1920,1080),glm::vec2(660,400+i*100),glm::vec2(60,60)));
+            pushConstantText.use(buffer,pipelineText,PushConstantBlockText(glm::vec2(1920,1080),glm::vec2(660,400+i*100),glm::vec2(60,60),font.texturePacker.getSize()));
 
-            commandBuffer.bindVertexBuffers(0, *text->buffer.buffer, {0});
-            commandBuffer.draw(static_cast<uint32_t>(text->vertexCount), 1, 0, 0);
+            text->draw(buffer,render.getFrameIndex());
             i++;
             if(i==2){
                 if(std::chrono::steady_clock::now() > t+std::chrono::milliseconds(400))
