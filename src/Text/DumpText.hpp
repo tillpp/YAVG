@@ -11,7 +11,6 @@
 #include <memory>
 #include FT_FREETYPE_H  
 #include "vulkan/setup/CommandPool.hpp"
-#include "vulkan_old/Image2.hpp"
 #include "Text/TexturePacker.hpp"
 
 /*

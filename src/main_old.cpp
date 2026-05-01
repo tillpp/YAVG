@@ -76,7 +76,7 @@ public:
 
         font.loadFromFile(projectBaseDir/"assets"/"fonts"/"unscii-16-full.ttf");
         font.getGlyph(pool,render.getFrameIndex(),'-');
-        text.setString(font, pool, render.getFrameIndex(), u8"Suffer alone 😈");
+        text.setString(font, pool, render.getFrameIndex(), u8"Suffer alone    😈");
         text2.setString(font, pool, render.getFrameIndex(), u8"Suffer together 😈 😈");
         text3.setString(font, pool, render.getFrameIndex(), u8"Exit");
 
@@ -206,7 +206,7 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
 
 
 
-    Image2 image;
+    Image image;
     std::shared_ptr<UBO> ubo = std::make_shared<UBO>();
     DescriptorSetLayout dsLayout;
     DescriptorSet ds;

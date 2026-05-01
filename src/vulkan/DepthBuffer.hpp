@@ -1,5 +1,5 @@
 #pragma once
-#include "vulkan_old/Image2.hpp"
+#include "vulkan_old/Image.hpp"
 #include "vulkan/setup/Swapchain.hpp"
 
 
@@ -11,7 +11,7 @@ class DepthBuffer
     static vk::Format findDepthFormat(Device& device);
 public:
     
-    Image2 image;
+    Image image;
     vk::Format depthFormat;
 
     void create(CommandPool& pool,Swapchain& swapchain);

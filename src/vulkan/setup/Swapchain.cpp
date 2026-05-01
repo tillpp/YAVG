@@ -115,7 +115,7 @@ void Swapchain::beginRendering(CommandBuffer& commandBuffer,uint32_t imageIndex,
 
     if(depthBuffer){
         commandBuffer.transition_image_layout(
-            *(*depthBuffer).image.image,
+            *(*depthBuffer).image.current->image,
             vk::ImageLayout::eUndefined,
             vk::ImageLayout::eDepthAttachmentOptimal,
             vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
@@ -149,7 +149,7 @@ void Swapchain::beginRendering(CommandBuffer& commandBuffer,uint32_t imageIndex,
     vk::RenderingAttachmentInfo depthAttachmentInfo;
     if(depthBuffer){
         depthAttachmentInfo = {
-            .imageView   = (*depthBuffer).image.imageView,
+            .imageView   = (*depthBuffer).image.current->imageView,
             .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
             .loadOp      = vk::AttachmentLoadOp::eClear,
             .storeOp     = vk::AttachmentStoreOp::eDontCare,

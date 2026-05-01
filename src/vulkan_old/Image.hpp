@@ -1,11 +1,19 @@
 #pragma once
+#include <stb_image.h>
+#include "vulkan/setup/Device.hpp"
+#include "vulkan/setup/CommandBuffer.hpp"
+#include "Buffer.hpp"
+#include <filesystem>
+
 #include "vulkan/Descriptor.hpp"
 #include "vulkan/Header.hpp"
 #include "vulkan/setup/CommandPool.hpp"
-#include "vulkan_old/Image2.hpp"
 #include <filesystem>
 #include <memory>
 #include <vulkan/vulkan.hpp>
+
+//TODO learn more about ktx
+//TODO: try to reread https://docs.vulkan.org/tutorial/latest/06_Texture_mapping/00_Images.html#_layout_transitions , cause i didnt understand everything.
 
 class Image:public Resource{
 public:
@@ -42,6 +50,8 @@ public:
             imageMemory = vk::raii::DeviceMemory(device.device, allocInfo);
             image.bindMemory(*imageMemory, 0);   
         }
+        //TODO: store the current layout to be used for "oldLayout"
+
         void transitionImageLayout(CommandPool& pool,vk::ImageLayout oldLayout, vk::ImageLayout newLayout) {
             CommandBuffer commandBuffer(pool); 
             commandBuffer.beginSingleTimeCommands();

@@ -1,5 +1,8 @@
 
 #include "RenderSync.hpp"
+#include "vulkan/setup/Device.hpp"
+#include "vulkan/DepthBuffer.hpp"
+
 
 void RenderSync::create(CommandPool& pool,Swapchain& swapchain){
     auto& device = pool.getDevice();

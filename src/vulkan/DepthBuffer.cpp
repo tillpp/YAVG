@@ -1,4 +1,6 @@
 #include "DepthBuffer.hpp"
+#include "vulkan_old/Image.hpp"
+#include <memory>
 
 vk::Format DepthBuffer::findSupportedFormat(Device& device,const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features) {
     for (const auto format : candidates) {
@@ -27,7 +29,8 @@ vk::Format DepthBuffer::findDepthFormat(Device& device) {
 }
 void DepthBuffer::create(CommandPool& pool,Swapchain& swapchain){
     depthFormat = findDepthFormat(pool.getDevice());
-    image.createImage(pool,
+    image.current = std::make_shared<Image::Reincarnation>();
+    image.current->initImage(pool.getDevice(),
         swapchain.swapChainExtent.width, 
         swapchain.swapChainExtent.height, 
         depthFormat, 
@@ -35,7 +38,7 @@ void DepthBuffer::create(CommandPool& pool,Swapchain& swapchain){
         vk::ImageUsageFlagBits::eDepthStencilAttachment, 
         vk::MemoryPropertyFlagBits::eDeviceLocal
     );
-    image.imageView = image.createImageView(pool.getDevice(), 
+    image.current->imageView = image.current->createImageView(pool.getDevice(), 
         depthFormat, 
         vk::ImageAspectFlagBits::eDepth
     );

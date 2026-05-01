@@ -1,6 +1,7 @@
 #pragma once
 #include "vulkan/Descriptor.hpp"
 #include "vulkan/setup/Device.hpp"
+#include "vulkan_old/Buffer.hpp"
 #include <algorithm>
 #include <memory>
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
