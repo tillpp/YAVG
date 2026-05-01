@@ -324,7 +324,7 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
             ImageIndex imageIndex;
             if(!_game.render.begin(_game.window,_game.swapchain,_game.commandPool,&depthBuffer,imageIndex))
                 continue;
-            
+
             auto frameIndex = _game.render.getFrameIndex();
             auto& CB        = _game.render.getCommandBuffer();
             
@@ -344,7 +344,7 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
     }
     _game.device.device.waitIdle();
 }
-int main(int argc, char const *argv[]){
+int main(int argc, char const *argv[]){    
     time_t t;
     time(&t);
     srand(t);
