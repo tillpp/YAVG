@@ -1,6 +1,6 @@
 #pragma once
-#include "Parser/BinaryData.hpp"
-#include "Parser/Filebasic.hpp"
+#include "Data/BinaryData.hpp"
+#include "Data/Filebasic.hpp"
 #include <filesystem>
 #include <iostream>
 #include <vector>

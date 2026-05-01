@@ -1,7 +1,7 @@
 #pragma once
 #include <filesystem>
-#include "Parser/BinaryData.hpp"
-#include "Parser/File.hpp"
+#include "Data/BinaryData.hpp"
+#include "Data/File.hpp"
 
 class Region
 {
