@@ -2,11 +2,13 @@
 #include "glm/ext/vector_float2.hpp"
 #include "glm/ext/vector_int2.hpp"
 #include "vulkan_old/Buffer.hpp"
+#include "vulkan_old/Image.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <iostream>
 #include <filesystem>
 #include <ft2build.h>
+#include <memory>
 #include FT_FREETYPE_H  
 #include "vulkan/setup/CommandPool.hpp"
 #include "vulkan_old/Image2.hpp"
@@ -32,8 +34,7 @@ private:
 public:
     TexturePacker texturePacker;
 
-    std::map<size_t,Image2> legacy;
-    Image2 image;
+    std::shared_ptr<Image> image;
     
     Font();
     Font(const Font&)=delete;

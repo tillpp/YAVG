@@ -88,9 +88,8 @@ public:
         ds2.create(device,render,dsLayout,{
             DescriptorLayout(1,vk::ShaderStageFlagBits::eFragment, vk::DescriptorType::eCombinedImageSampler),
         });
-        //ds2.setResource(1, font.image);
-        ds2.setResource(1, image2);
-
+        ds2.setResource(1, font.image);
+        
         pushConstant.create(vk::ShaderStageFlagBits::eVertex,0,sizeof(PushConstantBlock));
         pipeline.create(device,projectBaseDir/"bin"/"gui.spv",
             "vertMain","fragMain",swapchain,dsLayout,depthBuffer,false,&pushConstant
@@ -106,32 +105,7 @@ public:
     bool f = true;
     void draw(Window& window,Device& device,CommandPool& pool,CommandBuffer& buffer,RenderSync& render){
         auto fi = render.getFrameIndex();
-        if(font.legacy.size()){
-            ds2.descriptorSets[fi].clear();
-            vk::DescriptorSetAllocateInfo allocInfo{ 
-                .descriptorPool = ds2.descriptorPool, 
-                .descriptorSetCount = static_cast<uint32_t>(1), 
-                .pSetLayouts = &*dsLayout.descriptorSetLayout, 
-            };
-            ds2.descriptorSets[fi] = std::move(device.device.allocateDescriptorSets(allocInfo).front());
-
-            vk::DescriptorImageInfo imageInfo = { 
-                .sampler     = font.image.textureSampler, 
-                .imageView   = font.image.imageView, 
-                .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
-            };
-            vk::WriteDescriptorSet wds{ 
-                .dstSet = ds2.descriptorSets[fi], 
-                .dstBinding = 1, 
-                .dstArrayElement = 0, 
-                .descriptorCount = 1,
-                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-                .pImageInfo = &imageInfo,
-            };
-            device.device.updateDescriptorSets({wds}, {});
-            if(font.legacy.contains(fi))
-                font.legacy.erase(render.getFrameIndex());
-        }
+        
         if(glfwGetKey(window, GLFW_KEY_Y)){
             
             char c = 32+rand()%96;
@@ -157,7 +131,7 @@ public:
         ds2.bind(device,commandBuffer,render,pipelineText);
 
         commandBuffer.bindVertexBuffers(0, *text.buffer.buffer, {0});
-        //commandBuffer.bindIndexBuffer(*indexBuffer.buffer, 0, vk::IndexType::eUint16);
+        commandBuffer.bindIndexBuffer(*indexBuffer.buffer, 0, vk::IndexType::eUint16);
         commandBuffer.draw(static_cast<uint32_t>(text.vertexCount), 1, 0, 0);
     }
 };

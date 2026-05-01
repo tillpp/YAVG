@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <cuchar>
 #include <exception>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -38,6 +39,7 @@ void deinitFreetype(){
 Font::Font():texturePacker(glm::ivec2(0,0))
 {
     initFreetype();
+    image = std::make_shared<Image>();
 }
 Font::~Font()
 {
@@ -79,7 +81,7 @@ Font::Glyph Font::getGlyph(CommandPool& pool,size_t frameIndex,uint32_t c){
         return  glyph;
     }
     vk::DeviceSize imageSize = texWidth * texHeight * 1;
-
+    
     Buffer stagingBuffer;
     stagingBuffer.createBuffer(pool.getDevice(),imageSize,vk::BufferUsageFlagBits::eTransferSrc,vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
     
@@ -90,16 +92,16 @@ Font::Glyph Font::getGlyph(CommandPool& pool,size_t frameIndex,uint32_t c){
     auto oldSize = texturePacker.getSize();
     auto resp = texturePacker.request(glm::ivec2(texWidth,texHeight));
     if(oldSize != resp.newSize){
-        Image2 newImage;
-        newImage.createImage(pool,resp.newSize.x, resp.newSize.y, vk::Format::eR8Srgb, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled, vk::MemoryPropertyFlagBits::eDeviceLocal);
-        newImage.transitionImageLayout(pool, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
+        auto newImage = std::make_shared<Image::Reincarnation>();
+        newImage->initImage(pool.getDevice(),resp.newSize.x, resp.newSize.y, vk::Format::eR8Srgb, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled, vk::MemoryPropertyFlagBits::eDeviceLocal);
+        newImage->transitionImageLayout(pool, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
         // copy the old textureAtlas
         if(oldSize.x != 0 && oldSize.y != 0){
 
             CommandBuffer cb(pool);
             cb.beginSingleTimeCommands();
             cb.transition_image_layout(
-                image.image, 
+                image->getCurrent()->image, 
                 vk::ImageLayout::eShaderReadOnlyOptimal, 
                 vk::ImageLayout::eTransferSrcOptimal, 
                 vk::AccessFlags2::BitsType::eShaderRead, 
@@ -109,9 +111,9 @@ Font::Glyph Font::getGlyph(CommandPool& pool,size_t frameIndex,uint32_t c){
                 vk::ImageAspectFlags::BitsType::eColor
             );
             cb.commandBuffer.copyImage(
-                image.image, 
+                image->getCurrent()->image, 
                 vk::ImageLayout::eTransferSrcOptimal,
-                newImage.image, 
+                newImage->image, 
                 vk::ImageLayout::eTransferDstOptimal, {
                 vk::ImageCopy{
                     .srcSubresource = { vk::ImageAspectFlagBits::eColor, 0,0,1},
@@ -122,7 +124,7 @@ Font::Glyph Font::getGlyph(CommandPool& pool,size_t frameIndex,uint32_t c){
                 }
             });
             cb.transition_image_layout(
-                image.image, 
+                image->getCurrent()->image, 
                 vk::ImageLayout::eTransferSrcOptimal, 
                 vk::ImageLayout::eShaderReadOnlyOptimal, 
                 vk::AccessFlags2::BitsType::eTransferRead, 
@@ -133,8 +135,8 @@ Font::Glyph Font::getGlyph(CommandPool& pool,size_t frameIndex,uint32_t c){
             );
             cb.endSingleTimeCommands(pool);
         }
-        newImage.transitionImageLayout(pool, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
-        newImage.createTextureImageView(pool.getDevice(),vk::Format::eR8Srgb);
+        newImage->transitionImageLayout(pool, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
+        newImage->createTextureImageView(pool.getDevice(),vk::Format::eR8Srgb);
         {
              vk::PhysicalDeviceProperties properties = pool.getDevice().physicalDevice.getProperties();
             vk::SamplerCreateInfo samplerInfo{
@@ -149,16 +151,14 @@ Font::Glyph Font::getGlyph(CommandPool& pool,size_t frameIndex,uint32_t c){
                 .compareEnable = vk::False,
                 .compareOp = vk::CompareOp::eAlways
             };
-            newImage.textureSampler = vk::raii::Sampler(pool.getDevice().device, samplerInfo);
+            newImage->textureSampler = vk::raii::Sampler(pool.getDevice().device, samplerInfo);
         }
-        legacy[frameIndex] = std::move(image);
-        image = std::move(newImage);
-
+        image->current = newImage;
     }
 
     //copy the new glyph
     {
-        image.transitionImageLayout(pool, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
+        image->current->transitionImageLayout(pool, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
         CommandBuffer commandBuffer(pool);
         commandBuffer.beginSingleTimeCommands();
         vk::BufferImageCopy region{ 
@@ -169,9 +169,9 @@ Font::Glyph Font::getGlyph(CommandPool& pool,size_t frameIndex,uint32_t c){
             .imageOffset = {resp.position.x, resp.position.y, 0}, 
             .imageExtent = {(uint32_t)texWidth, (uint32_t)texHeight, 1} 
         };
-        commandBuffer.commandBuffer.copyBufferToImage(stagingBuffer.buffer,image.image,vk::ImageLayout::eTransferDstOptimal,{region});
+        commandBuffer.commandBuffer.copyBufferToImage(stagingBuffer.buffer,image->current->image,vk::ImageLayout::eTransferDstOptimal,{region});
         commandBuffer.endSingleTimeCommands(pool);
-        image.transitionImageLayout(pool, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
+        image->current->transitionImageLayout(pool, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
     }        
     
     Glyph glyph{

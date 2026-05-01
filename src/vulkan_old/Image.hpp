@@ -8,6 +8,7 @@
 #include <vulkan/vulkan.hpp>
 
 class Image:public Resource{
+public:
     // when the image gets resized, it "reincarnates" (wink). 
     // DS can still point at old Reincarnations before their are updated.
     struct Reincarnation:public ResourceReincarnation{
@@ -128,6 +129,9 @@ class Image:public Resource{
     };
     std::shared_ptr<Reincarnation> current;
 public:
+    std::shared_ptr<Reincarnation> getCurrent(){
+        return current;
+    }
 
     Image(){}
     ~Image(){}
