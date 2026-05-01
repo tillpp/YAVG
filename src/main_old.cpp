@@ -1,6 +1,7 @@
 
 
 #include "GLFW/glfw3.h"
+#include "vulkan/DescriptorLayout.hpp"
 #include "vulkan/setup/Window.hpp"
 #include "vulkan/setup/Device.hpp"
 #include "vulkan/setup/CommandBuffer.hpp"
@@ -11,10 +12,12 @@
 #include "Text/DumpText.hpp"
 #include <chrono>
 #include <cstdlib>
+#include <memory>
 #include <ratio>
 #include <thread>
 
 #include "client/Game.hpp"
+#include "vulkan_old/Image.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -27,6 +30,7 @@
 #include "client/MeshWeaver.hpp"
 #include "FastNoiseLite.h"
 #include "vulkan/PushContant.hpp"
+#include "vulkan/DescriptorLayout.hpp"
 
 
 const std::vector<Vertex> vertices = {
@@ -42,7 +46,7 @@ public:
     Buffer vertexBuffer, indexBuffer;
     Pipeline pipeline;
     Pipeline pipelineText;
-    Image image,image2;
+    std::shared_ptr<Image> image,image2;
     DescriptorSetLayout dsLayout;
     DescriptorSet ds,ds2;
     Text text;
@@ -65,21 +69,28 @@ public:
         std::filesystem::path projectBaseDir,
         DepthBuffer& depthBuffer){
 
-        image.create(pool,projectBaseDir/"assets"/"SingleplayerBtn.png");
-        image2.create(pool,projectBaseDir/"assets"/"MultiplayerBtn.png");
+        image  = std::make_shared<Image>();
+        image2 = std::make_shared<Image>();
+        image->create(pool,projectBaseDir/"assets"/"SingleplayerBtn.png");
+        image2->create(pool,projectBaseDir/"assets"/"MultiplayerBtn.png");
         dsLayout.create(device,{
             DescriptorLayout(1,vk::ShaderStageFlagBits::eFragment, vk::DescriptorType::eCombinedImageSampler),
         });
         ds.create(device,render,dsLayout,{
-            Descriptor(1,vk::ShaderStageFlagBits::eFragment,image),
+            DescriptorLayout(1,vk::ShaderStageFlagBits::eFragment, vk::DescriptorType::eCombinedImageSampler),
         });
+        ds.setResource(1, image);
+
         font.loadFromFile(projectBaseDir/"assets"/"fonts"/"unscii-16-full.ttf");
         font.getGlyph(pool,render.getFrameIndex(),'-');
         text.setString(font, pool, render.getFrameIndex(), u8"This is a Text Rendering tüst!");
 
         ds2.create(device,render,dsLayout,{
-            Descriptor(1,vk::ShaderStageFlagBits::eFragment,font.image),
+            DescriptorLayout(1,vk::ShaderStageFlagBits::eFragment, vk::DescriptorType::eCombinedImageSampler),
         });
+        //ds2.setResource(1, font.image);
+        ds2.setResource(1, image2);
+
         pushConstant.create(vk::ShaderStageFlagBits::eVertex,0,sizeof(PushConstantBlock));
         pipeline.create(device,projectBaseDir/"bin"/"gui.spv",
             "vertMain","fragMain",swapchain,dsLayout,depthBuffer,false,&pushConstant
@@ -133,9 +144,9 @@ public:
         }
         auto& commandBuffer = buffer.commandBuffer;
 
+        commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline.graphicsPipeline);
         pushConstant.use(buffer,pipeline,PushConstantBlock(glm::vec2(1920,1080),glm::vec2(660+150,100),glm::vec2(300,100)));
-        
-        ds.bind(commandBuffer,render,pipeline);
+        ds.bind(device,commandBuffer,render,pipeline);
        
         commandBuffer.bindVertexBuffers(0, *vertexBuffer.buffer, {0});
         commandBuffer.bindIndexBuffer(*indexBuffer.buffer, 0, vk::IndexType::eUint16);
@@ -143,8 +154,8 @@ public:
         
         commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineText.graphicsPipeline);
         pushConstant.use(buffer,pipelineText,PushConstantBlock(glm::vec2(1920,1080),glm::vec2(660,300),glm::vec2(60,60)));
+        ds2.bind(device,commandBuffer,render,pipelineText);
 
-        ds2.bind(commandBuffer,render,pipelineText);
         commandBuffer.bindVertexBuffers(0, *text.buffer.buffer, {0});
         //commandBuffer.bindIndexBuffer(*indexBuffer.buffer, 0, vk::IndexType::eUint16);
         commandBuffer.draw(static_cast<uint32_t>(text.vertexCount), 1, 0, 0);
@@ -206,8 +217,8 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
 
 
 
-    Image image;
-    UBO ubo;
+    Image2 image;
+    std::shared_ptr<UBO> ubo = std::make_shared<UBO>();
     DescriptorSetLayout dsLayout;
     DescriptorSet ds;
     Camera camera;
@@ -215,15 +226,17 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
     Pipeline pipeline;
     
     image.create(_game.commandPool,projectBaseDir/"assets"/"texture.jpg");
-    ubo.create(_game.device,_game.render.MAX_FRAMES_IN_FLIGHT);
+    ubo->create(_game.device,_game.render.MAX_FRAMES_IN_FLIGHT);
     dsLayout.create(_game.device,{
         DescriptorLayout(0,vk::ShaderStageFlagBits::eVertex  ,vk::DescriptorType::eUniformBuffer),
         //DescriptorLayout(1,vk::ShaderStageFlagBits::eFragment,vk::DescriptorType::eCombinedImageSampler),
     });
     ds.create(_game.device,_game.render,dsLayout,{
-        Descriptor(0,vk::ShaderStageFlagBits::eVertex,ubo),
+        DescriptorLayout(0,vk::ShaderStageFlagBits::eVertex  ,vk::DescriptorType::eUniformBuffer),
         //Descriptor(1,vk::ShaderStageFlagBits::eFragment,image),
     });
+    ds.setResource(0, ubo);
+
     depthBuffer.create(_game.commandPool,_game.swapchain);
     pipeline.create(_game.device,
         projectBaseDir/"bin"/"slang.spv",
@@ -254,7 +267,7 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
         float aspectRatio = static_cast<float>(_game.swapchain.swapChainExtent.width) / static_cast<float>(_game.swapchain.swapChainExtent.height);
 
         bool zoom = glfwGetKey(_game.window,GLFW_KEY_C) == GLFW_PRESS;
-        ubo.updateUniformBuffer(frameIndex,aspectRatio, zoom,camera.pos,camera.forward);
+        ubo->updateUniformBuffer(frameIndex,aspectRatio, zoom,camera.pos,camera.forward);
 
         auto& commandBuffer = CB.commandBuffer;
         
@@ -274,7 +287,7 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
             });
             
             //TODO: learn more about dynamic descriptors
-            ds.bind(commandBuffer,_game.render,pipeline);
+            ds.bind(_game.device,commandBuffer,_game.render,pipeline);
     
             for (size_t x = 0; x < range; x++){
                 for (size_t y = 0; y < range; y++){
@@ -286,7 +299,6 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
         }
     
         {
-            commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *gs.pipeline.graphicsPipeline);
             commandBuffer.setViewport(0, vk::Viewport{
                 .x = 0.0f,
                 .y = 0.0f,

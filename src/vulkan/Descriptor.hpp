@@ -1,59 +1,58 @@
 #pragma once
 #include "vulkan/Header.hpp"
+#include "vulkan/DescriptorLayout.hpp"
 #include "vulkan/setup/RenderSync.hpp"
+#include <cstddef>
+#include <map>
+#include <memory>
+#include <vector>
 
-struct DescriptorLayout{
-    uint32_t             binding;
-    vk::ShaderStageFlags stageFlags;
-    vk::DescriptorType   descriptorType;
 
-    
-    DescriptorLayout(
-        uint32_t             binding,
-        vk::ShaderStageFlags stageFlags,
-        vk::DescriptorType   descriptorType
-    );
-    
-    vk::DescriptorSetLayoutBinding getBinding()const;
-};
+class DescriptorInfo{
+public:    
+    enum InfoType{
+        BUFFER,
+        IMAGE,
+    };
+    InfoType type;
 
-class Descriptor:public DescriptorLayout{
-public:
-    class UBO*   ubo   = nullptr;
-    class Image* image = nullptr;
-
-    Descriptor(
-        uint32_t             binding,
-        vk::ShaderStageFlags stageFlags,
-        class UBO&           ubo
-    );
-    Descriptor(
-        uint32_t             binding,
-        vk::ShaderStageFlags stageFlags,
-        class Image&         image
-    );
-    
     vk::DescriptorBufferInfo bufferInfo;
     vk::DescriptorImageInfo imageInfo;
-    void writeDescriptorSet(vk::WriteDescriptorSet& wds,size_t frameInFlight);   
-
 };
 
-class DescriptorSetLayout
-{
-public:
-    vk::raii::DescriptorSetLayout descriptorSetLayout = nullptr;
-    void create(Device& device,std::vector<DescriptorLayout> dsArray);
+struct ResourceReincarnation{
+    virtual DescriptorInfo getDescriptorInfo()const = 0;
+};
+struct Resource{
+    virtual std::shared_ptr<ResourceReincarnation> getResource(size_t frameIndex)const = 0;
 };
 
 
 class DescriptorSet{
+    struct Binding:DescriptorLayout{
+        std::shared_ptr<Resource> resource;
+        struct Frame{
+            std::shared_ptr<ResourceReincarnation> reincarnation;
+        };
+        std::vector<Frame> frames;
+
+        Binding(RenderSync& render,const DescriptorLayout& dsLayout):DescriptorLayout(dsLayout){
+            for (int i = 0; i<render.MAX_FRAMES_IN_FLIGHT; i++) {
+                frames.push_back({
+                });
+            }
+        }
+    };
+    std::vector<Binding> bindings;
+    std::map<size_t, size_t> mappingID2Index;
 public:
     vk::raii::DescriptorPool descriptorPool = nullptr;
     std::vector<vk::raii::DescriptorSet> descriptorSets;
 
 
-    void create(Device& device,RenderSync& render,DescriptorSetLayout& dsl,std::vector<Descriptor> dsArray);
-    void bind(vk::raii::CommandBuffer& commandBuffer,RenderSync& render, class Pipeline& pipeline,uint32_t firstSet = 0);
+    void create(Device& device,RenderSync& render,DescriptorSetLayout& dsl,std::vector<DescriptorLayout> dsArray);
+    void bind(Device& device,vk::raii::CommandBuffer& commandBuffer,RenderSync& render, class Pipeline& pipeline,uint32_t firstSet = 0);
+
+    void setResource(size_t binding,std::shared_ptr<Resource> resource);
 };
 

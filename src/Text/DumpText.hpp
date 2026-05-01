@@ -32,8 +32,8 @@ private:
 public:
     TexturePacker texturePacker;
 
-    std::map<size_t,Image> legacy;
-    Image image;
+    std::map<size_t,Image2> legacy;
+    Image2 image;
     
     Font();
     Font(const Font&)=delete;

@@ -90,7 +90,7 @@ Font::Glyph Font::getGlyph(CommandPool& pool,size_t frameIndex,uint32_t c){
     auto oldSize = texturePacker.getSize();
     auto resp = texturePacker.request(glm::ivec2(texWidth,texHeight));
     if(oldSize != resp.newSize){
-        Image newImage;
+        Image2 newImage;
         newImage.createImage(pool,resp.newSize.x, resp.newSize.y, vk::Format::eR8Srgb, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled, vk::MemoryPropertyFlagBits::eDeviceLocal);
         newImage.transitionImageLayout(pool, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
         // copy the old textureAtlas

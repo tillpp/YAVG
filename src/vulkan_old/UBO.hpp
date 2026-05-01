@@ -1,5 +1,8 @@
 #pragma once
+#include "vulkan/Descriptor.hpp"
 #include "vulkan/setup/Device.hpp"
+#include <algorithm>
+#include <memory>
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
@@ -14,29 +17,41 @@ struct UniformBufferObject {
     alignas(16) glm::mat4 proj;
 };
 
-class UBO
+class UBO:public Resource
 {
+    struct Reincarnation:public ResourceReincarnation{
+        Buffer buffer;
+        void* buffersMapped;
+        virtual DescriptorInfo getDescriptorInfo()const{
+            DescriptorInfo di;
+            di.type = DescriptorInfo::BUFFER;
+            di.bufferInfo = { 
+                .buffer = buffer.buffer, 
+                .offset = 0, 
+                .range   = sizeof(UniformBufferObject), 
+            };
+            return di;     
+        }
+    };
 public:
     size_t size = sizeof(UniformBufferObject);
-    std::vector<Buffer> uniformBuffers;
-    std::vector<void*> uniformBuffersMapped;
+    std::vector<std::shared_ptr<Reincarnation>> frames;
 
-    //TODO: pipeline description into a different class.
     void create(Device& device,const size_t MAX_FRAMES_IN_FLIGHT){
 
         // for memory
-        uniformBuffers.clear();
-        uniformBuffersMapped.clear();
+        frames.clear();
 
-        
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
             vk::DeviceSize bufferSize = sizeof(UniformBufferObject);
             Buffer buffer;
             buffer.createBuffer(device,bufferSize,vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-            uniformBuffers.emplace_back(std::move(buffer));
-            uniformBuffersMapped.emplace_back( uniformBuffers[i].bufferMemory.mapMemory(0, bufferSize));
+            
+            auto reincarnation = std::make_shared<Reincarnation>();
+            frames.push_back(reincarnation);
+            reincarnation->buffer        = std::move(buffer);
+            reincarnation->buffersMapped = std::move(reincarnation->buffer.bufferMemory.mapMemory(0, bufferSize));
         }
-
     }
 
     //static_cast<float>(swapChainExtent.width) / static_cast<float>(swapChainExtent.height)
@@ -58,7 +73,12 @@ public:
         // cause glm wasnt designed for Vulkan: (invert y aches)
         ubo.proj[1][1] *= -1;
 
-        memcpy(uniformBuffersMapped[currentFrame], &ubo, sizeof(ubo));
+        memcpy(frames[currentFrame]->buffersMapped, &ubo, sizeof(ubo));
     }
+
+    virtual std::shared_ptr<ResourceReincarnation> getResource(size_t frameIndex)const{
+        return frames[frameIndex];
+    }
+
 };
 

@@ -1,77 +1,14 @@
 #include "Descriptor.hpp"
 #include "vulkan_old/UBO.hpp"
 
-vk::DescriptorSetLayoutBinding DescriptorLayout::getBinding()const{
-    return vk::DescriptorSetLayoutBinding{
-        .binding = binding,
-        .descriptorType = descriptorType,
-        .descriptorCount = 1,
-        .stageFlags = stageFlags,
-        .pImmutableSamplers = nullptr,
-    };
-}
-DescriptorLayout::DescriptorLayout(
-    uint32_t             binding,
-    vk::ShaderStageFlags stageFlags,
-    vk::DescriptorType   descriptorType
-){
-    this->binding = binding;
-    this->stageFlags = stageFlags;
-    this->descriptorType = descriptorType;
-}
 
 
-Descriptor::Descriptor(
-    uint32_t             binding,
-    vk::ShaderStageFlags stageFlags,
-    UBO&                 ubo
-):DescriptorLayout(binding,stageFlags,vk::DescriptorType::eUniformBuffer),ubo(&ubo){
-}
-Descriptor::Descriptor(
-    uint32_t             binding,
-    vk::ShaderStageFlags stageFlags,
-    Image&               image
-):DescriptorLayout(binding,stageFlags,vk::DescriptorType::eCombinedImageSampler),image(&image){
-}
-
-void Descriptor::writeDescriptorSet(vk::WriteDescriptorSet& wds,size_t frameInFlight){
-    if(descriptorType == vk::DescriptorType::eUniformBuffer){
-        bufferInfo = { 
-            .buffer = ubo->uniformBuffers[frameInFlight].buffer, 
-            .offset = 0, 
-            .range   = ubo->size, 
-        };
-        wds.pBufferInfo = &bufferInfo;
-        
-    }
-    if(descriptorType == vk::DescriptorType::eCombinedImageSampler){
-        imageInfo = { 
-            .sampler     = image->textureSampler, 
-            .imageView   = image->imageView, 
-            .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
-        };
-        wds.pImageInfo = &imageInfo;
-    }
-}
-
-
-void DescriptorSetLayout::create(Device& device,std::vector<DescriptorLayout> dsArray){
-    {
-        std::vector<vk::DescriptorSetLayoutBinding> bindings;
-        for(auto& ds:dsArray){
-            bindings.push_back(ds.getBinding());
-        }
-        vk::DescriptorSetLayoutCreateInfo layoutInfo{
-            .bindingCount = (uint32_t)bindings.size(), 
-            .pBindings = bindings.data(),
-        };
-        descriptorSetLayout = vk::raii::DescriptorSetLayout(device.device, layoutInfo);
-    }        
-}
 
 #include "vulkan/Pipeline.hpp"
+#include <cassert>
+#include <vector>
 
-void DescriptorSet::create(Device& device,RenderSync& render,DescriptorSetLayout& dsl,std::vector<Descriptor> dsArray){
+void DescriptorSet::create(Device& device,RenderSync& render,DescriptorSetLayout& dsl,std::vector<DescriptorLayout> dsArray){
     //pool creation
     {
         std::map<vk::DescriptorType,uint32_t> poolsizes;
@@ -108,24 +45,53 @@ void DescriptorSet::create(Device& device,RenderSync& render,DescriptorSetLayout
 
         descriptorSets.clear();
         descriptorSets = device.device.allocateDescriptorSets(allocInfo);
-
-        for (size_t i = 0; i < render.MAX_FRAMES_IN_FLIGHT; i++) {
-            std::vector<vk::WriteDescriptorSet> descriptorWrites;
-            for(auto& ds:dsArray){
-                vk::WriteDescriptorSet wds{ 
-                    .dstSet = descriptorSets[i], 
-                    .dstBinding = ds.binding, 
-                    .dstArrayElement = 0, 
-                    .descriptorCount = 1,
-                    .descriptorType = ds.descriptorType
-                };
-                ds.writeDescriptorSet(wds,i);
-                descriptorWrites.push_back(wds);
-            }
-            device.device.updateDescriptorSets(descriptorWrites, {});
-        }
+    }
+    for (auto& dsLayout : dsArray) {
+        mappingID2Index[dsLayout.binding] = bindings.size();
+        bindings.emplace_back(render,dsLayout);
     }
 }
-void DescriptorSet::bind(vk::raii::CommandBuffer& commandBuffer,RenderSync& render, Pipeline& pipeline,uint32_t firstSet ){
-    commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline.pipelineLayout, firstSet, *descriptorSets[render.getFrameIndex()], nullptr);
+void DescriptorSet::bind(Device& device,vk::raii::CommandBuffer& commandBuffer,RenderSync& render, Pipeline& pipeline,uint32_t firstSet ){
+    //Updating reincarnations:
+
+    auto fi = render.getFrameIndex();
+
+    std::vector<vk::WriteDescriptorSet> descriptorWrites;
+    DescriptorInfo descriptorInfos[bindings.size()];
+
+    for(int bindIndex = 0;bindIndex < bindings.size(); bindIndex++){
+        auto& bind          = bindings[bindIndex];
+        auto& reincarnation = bind.frames[fi].reincarnation;
+        auto& resource      = bind.resource;
+        
+        assert(resource);
+
+        // missmatch?
+        if(reincarnation != resource->getResource(fi)){
+            reincarnation = resource->getResource(fi);
+            vk::WriteDescriptorSet wds{ 
+                .dstSet = descriptorSets[fi], 
+                .dstBinding = bind.binding, 
+                .dstArrayElement = 0, 
+                .descriptorCount = 1,
+                .descriptorType = bind.descriptorType
+            };
+            auto& descriptorInfo =descriptorInfos[bindIndex];
+            descriptorInfo = reincarnation->getDescriptorInfo();
+
+            if(descriptorInfo.type == DescriptorInfo::BUFFER){
+                wds.pBufferInfo = &descriptorInfo.bufferInfo;
+            }else if(descriptorInfo.type == DescriptorInfo::IMAGE){
+                wds.pImageInfo = &descriptorInfo.imageInfo;
+            }
+            descriptorWrites.push_back(wds);
+        }
+    }
+    if(descriptorWrites.size())
+        device.device.updateDescriptorSets(descriptorWrites, {});
+
+    commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline.pipelineLayout, firstSet, *descriptorSets[fi], nullptr);
+}
+void DescriptorSet::setResource(size_t binding,std::shared_ptr<Resource> resource){
+    bindings[mappingID2Index[binding]].resource = resource;
 }

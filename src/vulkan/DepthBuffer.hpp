@@ -11,7 +11,7 @@ class DepthBuffer
     static vk::Format findDepthFormat(Device& device);
 public:
     
-    Image image;
+    Image2 image;
     vk::Format depthFormat;
 
     void create(CommandPool& pool,Swapchain& swapchain);

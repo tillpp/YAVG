@@ -7,13 +7,14 @@
 
 //TODO learn more about ktx
 //TODO: try to reread https://docs.vulkan.org/tutorial/latest/06_Texture_mapping/00_Images.html#_layout_transitions , cause i didnt understand everything.
-class Image
+class Image2
 {
 public:
     vk::raii::DeviceMemory imageMemory = nullptr;
     vk::raii::Image image = nullptr;
     vk::raii::ImageView imageView = nullptr;
     vk::raii::Sampler textureSampler = nullptr;
+
     void create(CommandPool& pool,std::filesystem::path path){
         //load image
         int texWidth = 0, texHeight = 0, texChannels = 0;
