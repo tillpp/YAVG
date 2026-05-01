@@ -11,6 +11,8 @@
 #include "client/Camera.hpp"
 #include "Text/DumpText.hpp"
 #include <chrono>
+#include <cstddef>
+#include <cstdio>
 #include <cstdlib>
 #include <memory>
 #include <ratio>
@@ -46,10 +48,9 @@ public:
     Buffer vertexBuffer, indexBuffer;
     Pipeline pipeline;
     Pipeline pipelineText;
-    std::shared_ptr<Image> image,image2;
     DescriptorSetLayout dsLayout;
-    DescriptorSet ds,ds2;
-    Text text;
+    DescriptorSet ds2;
+    Text text,text2,text3;
     struct PushConstantBlock{
         glm::vec2 position;
         glm::vec2 size;
@@ -69,21 +70,15 @@ public:
         std::filesystem::path projectBaseDir,
         DepthBuffer& depthBuffer){
 
-        image  = std::make_shared<Image>();
-        image2 = std::make_shared<Image>();
-        image->create(pool,projectBaseDir/"assets"/"SingleplayerBtn.png");
-        image2->create(pool,projectBaseDir/"assets"/"MultiplayerBtn.png");
         dsLayout.create(device,{
             DescriptorLayout(1,vk::ShaderStageFlagBits::eFragment, vk::DescriptorType::eCombinedImageSampler),
         });
-        ds.create(device,render,dsLayout,{
-            DescriptorLayout(1,vk::ShaderStageFlagBits::eFragment, vk::DescriptorType::eCombinedImageSampler),
-        });
-        ds.setResource(1, image);
 
         font.loadFromFile(projectBaseDir/"assets"/"fonts"/"unscii-16-full.ttf");
         font.getGlyph(pool,render.getFrameIndex(),'-');
-        text.setString(font, pool, render.getFrameIndex(), u8"This is a Text Rendering tüst!");
+        text.setString(font, pool, render.getFrameIndex(), u8"Suffer alone 😈");
+        text2.setString(font, pool, render.getFrameIndex(), u8"Suffer together 😈 😈");
+        text3.setString(font, pool, render.getFrameIndex(), u8"Exit");
 
         ds2.create(device,render,dsLayout,{
             DescriptorLayout(1,vk::ShaderStageFlagBits::eFragment, vk::DescriptorType::eCombinedImageSampler),
@@ -99,10 +94,13 @@ public:
         );
         vertexBuffer.createVertexBuffer(pool,vertices.data(),vertices.size());
         indexBuffer.createIndexBuffer(pool,indices.data(),indices.size());
+
+        t= std::chrono::steady_clock::now();
     }
     uint32_t ogfi;
     bool reset = false;
     bool f = true;
+    std::chrono::steady_clock::time_point t;
     void draw(Window& window,Device& device,CommandPool& pool,CommandBuffer& buffer,RenderSync& render){
         auto fi = render.getFrameIndex();
         
@@ -118,21 +116,38 @@ public:
         }
         auto& commandBuffer = buffer.commandBuffer;
 
-        commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline.graphicsPipeline);
-        pushConstant.use(buffer,pipeline,PushConstantBlock(glm::vec2(1920,1080),glm::vec2(660+150,100),glm::vec2(300,100)));
-        ds.bind(device,commandBuffer,render,pipeline);
+        // commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline.graphicsPipeline);
+        // pushConstant.use(buffer,pipeline,PushConstantBlock(glm::vec2(1920,1080),glm::vec2(660+150,100),glm::vec2(300,100)));
+        // ds.bind(device,commandBuffer,render,pipeline);
        
-        commandBuffer.bindVertexBuffers(0, *vertexBuffer.buffer, {0});
-        commandBuffer.bindIndexBuffer(*indexBuffer.buffer, 0, vk::IndexType::eUint16);
-        commandBuffer.drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0,0);
+        // commandBuffer.bindVertexBuffers(0, *vertexBuffer.buffer, {0});
+        // commandBuffer.bindIndexBuffer(*indexBuffer.buffer, 0, vk::IndexType::eUint16);
+        // commandBuffer.drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0,0);
         
         commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineText.graphicsPipeline);
-        pushConstant.use(buffer,pipelineText,PushConstantBlock(glm::vec2(1920,1080),glm::vec2(660,300),glm::vec2(60,60)));
         ds2.bind(device,commandBuffer,render,pipelineText);
+        Text* texts[] = {&text,&text2,&text3};
 
-        commandBuffer.bindVertexBuffers(0, *text.buffer.buffer, {0});
-        commandBuffer.bindIndexBuffer(*indexBuffer.buffer, 0, vk::IndexType::eUint16);
-        commandBuffer.draw(static_cast<uint32_t>(text.vertexCount), 1, 0, 0);
+
+        size_t i = 0;
+        for (auto& text : texts) {
+            pushConstant.use(buffer,pipelineText,PushConstantBlock(glm::vec2(1920,1080),glm::vec2(660,400+i*100),glm::vec2(60,60)));
+
+            commandBuffer.bindVertexBuffers(0, *text->buffer.buffer, {0});
+            commandBuffer.draw(static_cast<uint32_t>(text->vertexCount), 1, 0, 0);
+            i++;
+            if(i==2){
+                if(std::chrono::steady_clock::now() > t+std::chrono::milliseconds(400))
+                    break;
+            }
+        }
+
+        
+        // pushConstant.use(buffer,pipelineText,PushConstantBlock(glm::vec2(1920,1080),glm::vec2(660,500),glm::vec2(60,60)));
+        
+        // commandBuffer.bindVertexBuffers(0, *text2.buffer.buffer, {0});
+        // commandBuffer.draw(static_cast<uint32_t>(text2.vertexCount), 1, 0, 0);
+        
     }
 };
 MeshWeaver mw;
@@ -227,7 +242,6 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
         }
         
     }
-
     GuiSystem gs;
     gs.create(_game.device,_game.commandPool,_game.swapchain,_game.render,projectBaseDir,depthBuffer);
 
