@@ -9,6 +9,7 @@
 #include "vulkan/setup/RenderSync.hpp"
 #include "server/World.hpp"
 #include "GameFolder.hpp"
+#include <string>
 
 class Game
 {
@@ -26,6 +27,7 @@ public:
 
     GameFolder gf;
     World world;
+    
     
     std::filesystem::path projectBaseDir;
     Game(std::filesystem::path projectBaseDir);

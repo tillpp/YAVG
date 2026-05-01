@@ -29,5 +29,7 @@ public:
 
     bool framebufferResized = false;
     bool grabMouse = true;
+
+    std::u32string textInput;
 };
             

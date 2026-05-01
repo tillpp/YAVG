@@ -1,4 +1,5 @@
 #include "Window.hpp"
+#include "GLFW/glfw3.h"
 
 int64_t glfwCount = 0;
 
@@ -67,6 +68,10 @@ void Window::create(Instance& instance,int width, int height, const char *title)
         }
 
 
+    });
+    glfwSetCharCallback(window, [](GLFWwindow* window,unsigned int codepoint){
+        auto self = (Window*)glfwGetWindowUserPointer(window);
+        self->textInput.push_back(codepoint);
     });
     toggleMouseGrab();
 }

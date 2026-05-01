@@ -50,6 +50,7 @@ public:
     Buffer buffer;
     size_t vertexCount;
     
+    void setString(Font& font,CommandPool& pool,size_t frameIndex,std::u32string string);
     void setString(Font& font,CommandPool& pool,size_t frameIndex,std::u8string string);
 
 };

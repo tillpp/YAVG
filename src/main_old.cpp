@@ -44,6 +44,7 @@ const std::vector<Vertex> vertices = {
 const std::vector<uint16_t> indices = {
     0, 3, 2, 2, 1, 0};
 
+
 class GuiSystem{
 public:
     Buffer vertexBuffer, indexBuffer;
@@ -62,6 +63,7 @@ public:
     };
     PushConstant pushConstant;
     Font font;
+    std::u32string string;
 
     void create(
         Device& device,
@@ -119,13 +121,19 @@ public:
         
         if(glfwGetKey(_game.window, GLFW_KEY_Y)){
             
-            char c = 32+rand()%96;
-            font.getGlyph(pool, render.getFrameIndex(), c);
-
+            //char c = 32+rand()%96;
+            //font.getGlyph(pool, render.getFrameIndex(), c);
+            
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
             // while(glfwGetKey(window, GLFW_KEY_Y)){
             //     glfwWaitEvents();
             // }
+            text.setString(font, pool, render.getFrameIndex(), u8"hi");
+        }
+        if(_game.window.textInput.size()){
+            string += _game.window.textInput;
+            _game.window.textInput.clear();
+            text.setString(font,pool, render.getFrameIndex(), string);
         }
         auto& commandBuffer = buffer.commandBuffer;
 

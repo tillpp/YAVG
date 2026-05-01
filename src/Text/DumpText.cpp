@@ -185,9 +185,6 @@ Font::Glyph Font::getGlyph(CommandPool& pool,size_t frameIndex,uint32_t c){
     return glyph;
 }
 void Text::setString(Font& font,CommandPool& pool,size_t frameIndex,std::u8string str){
-    std::vector<Vertex> vertices;
-    std::vector<Font::Glyph> glyphs;
-    
     std::u32string u32string;
     //convert u8 to u32string:
     {
@@ -206,7 +203,13 @@ void Text::setString(Font& font,CommandPool& pool,size_t frameIndex,std::u8strin
             u32string += c32;
         }
     }
-    for (auto& c : u32string) {
+    setString(font,pool,frameIndex,u32string);
+}
+void Text::setString(Font& font,CommandPool& pool,size_t frameIndex,std::u32string str){
+    std::vector<Vertex> vertices;
+    std::vector<Font::Glyph> glyphs;
+    
+    for (auto& c : str) {
         auto glyph = font.getGlyph(pool, frameIndex, c);
         glyphs.push_back(glyph);
     }
