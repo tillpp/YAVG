@@ -215,7 +215,6 @@ struct Chunk2{
 };
 struct WorldRenderer{
     Image image;
-    std::shared_ptr<UBO> ubo = std::make_shared<UBO>();
     DescriptorSetLayout dsLayout;
     DescriptorSet ds;
     Camera camera;
@@ -237,7 +236,8 @@ struct WorldRenderer{
         //noise.SetFractalLacunarity(2);    
 
         image.create(_game.commandPool,projectBaseDir/"assets"/"texture.jpg");
-        ubo->create(_game.device,_game.render.MAX_FRAMES_IN_FLIGHT);
+        
+        camera.create(_game.device,_game.render);
         dsLayout.create(_game.device,{
             DescriptorLayout(0,vk::ShaderStageFlagBits::eVertex  ,vk::DescriptorType::eUniformBuffer),
             //DescriptorLayout(1,vk::ShaderStageFlagBits::eFragment,vk::DescriptorType::eCombinedImageSampler),
@@ -246,7 +246,7 @@ struct WorldRenderer{
             DescriptorLayout(0,vk::ShaderStageFlagBits::eVertex  ,vk::DescriptorType::eUniformBuffer),
             //Descriptor(1,vk::ShaderStageFlagBits::eFragment,image),
         });
-        ds.setResource(0, ubo);
+        ds.setResource(0, camera.ubo);
 
         depthBuffer.create(_game.commandPool,_game.swapchain);
         pipeline.create(_game.device,
@@ -267,7 +267,7 @@ struct WorldRenderer{
         float aspectRatio = static_cast<float>(_game.swapchain.swapChainExtent.width) / static_cast<float>(_game.swapchain.swapChainExtent.height);
 
         bool zoom = glfwGetKey(_game.window,GLFW_KEY_C) == GLFW_PRESS;
-        ubo->updateUniformBuffer(frameIndex,aspectRatio, zoom,camera.pos,camera.forward);
+        camera.updateUniformBuffer(frameIndex,aspectRatio, zoom,camera.pos,camera.forward);
 
         auto& commandBuffer = CB.commandBuffer;
         
