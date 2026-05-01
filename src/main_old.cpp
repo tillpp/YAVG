@@ -1,6 +1,7 @@
 
 
 #include "GLFW/glfw3.h"
+#include "client/FPSMessurement.hpp"
 #include "vulkan/DescriptorLayout.hpp"
 #include "vulkan/setup/Window.hpp"
 #include "vulkan/setup/Device.hpp"
@@ -101,10 +102,22 @@ public:
     bool reset = false;
     bool f = true;
     std::chrono::steady_clock::time_point t;
-    void draw(Window& window,Device& device,CommandPool& pool,CommandBuffer& buffer,RenderSync& render){
+    void draw(Game& _game,CommandPool& pool,CommandBuffer& buffer,RenderSync& render){
+        buffer.commandBuffer.setViewport(0, vk::Viewport{
+            .x = 0.0f,
+            .y = 0.0f,
+            .width = static_cast<float>(_game.swapchain.swapChainExtent.width),
+            .height = static_cast<float>(_game.swapchain.swapChainExtent.height),
+            .minDepth = 0.0f,
+            .maxDepth = 1.0f,
+        });
+        buffer.commandBuffer.setScissor(0, vk::Rect2D{
+            .offset = vk::Offset2D{.x = 0,.y = 0},
+            .extent = _game.swapchain.swapChainExtent,
+        });
         auto fi = render.getFrameIndex();
         
-        if(glfwGetKey(window, GLFW_KEY_Y)){
+        if(glfwGetKey(_game.window, GLFW_KEY_Y)){
             
             char c = 32+rand()%96;
             font.getGlyph(pool, render.getFrameIndex(), c);
@@ -125,7 +138,7 @@ public:
         // commandBuffer.drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0,0);
         
         commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineText.graphicsPipeline);
-        ds2.bind(device,commandBuffer,render,pipelineText);
+        ds2.bind(_game.device,commandBuffer,render,pipelineText);
         Text* texts[] = {&text,&text2,&text3};
 
 
@@ -192,66 +205,57 @@ struct Chunk2{
         }
     }
 };
-void game(Game& _game,std::filesystem::path projectBaseDir) {
-    time_t t;
-    time(&t);
-    srand(t);
-    FastNoiseLite noise(t);
-    noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
-    noise.SetFractalType(FastNoiseLite::FractalType_FBm);
-    noise.SetFrequency(0.005);
-    //noise.SetFractalGain(0.75);
-    noise.SetFractalOctaves(5);
-    //noise.SetFractalLacunarity(2);    
-
-
-
+struct WorldRenderer{
     Image image;
     std::shared_ptr<UBO> ubo = std::make_shared<UBO>();
     DescriptorSetLayout dsLayout;
     DescriptorSet ds;
     Camera camera;
-    DepthBuffer depthBuffer;
     Pipeline pipeline;
     
-    image.create(_game.commandPool,projectBaseDir/"assets"/"texture.jpg");
-    ubo->create(_game.device,_game.render.MAX_FRAMES_IN_FLIGHT);
-    dsLayout.create(_game.device,{
-        DescriptorLayout(0,vk::ShaderStageFlagBits::eVertex  ,vk::DescriptorType::eUniformBuffer),
-        //DescriptorLayout(1,vk::ShaderStageFlagBits::eFragment,vk::DescriptorType::eCombinedImageSampler),
-    });
-    ds.create(_game.device,_game.render,dsLayout,{
-        DescriptorLayout(0,vk::ShaderStageFlagBits::eVertex  ,vk::DescriptorType::eUniformBuffer),
-        //Descriptor(1,vk::ShaderStageFlagBits::eFragment,image),
-    });
-    ds.setResource(0, ubo);
-
-    depthBuffer.create(_game.commandPool,_game.swapchain);
-    pipeline.create(_game.device,
-        projectBaseDir/"bin"/"slang.spv",
-        "vertMain","fragMain",
-        _game.swapchain, dsLayout,depthBuffer);
-
-    const size_t range = 3;
+    FastNoiseLite noise;
+    static const size_t range = 3;
     Chunk2 chunk[range][range][range];
-    for (size_t x = 0; x < range; x++){
-        for (size_t y = 0; y < range; y++){
-            for (size_t z = 0; z < range; z++){
-                chunk[x][y][z].create(_game.device,_game.commandPool,noise,x*32,-32+y*32,z*32);
-            }
-        }
-        
-    }
-    GuiSystem gs;
-    gs.create(_game.device,_game.commandPool,_game.swapchain,_game.render,projectBaseDir,depthBuffer);
+    void init(Game& _game,std::filesystem::path projectBaseDir,DepthBuffer& depthBuffer){
 
-    
-    // TODO refactor the following in the future:
-    auto recordCommandBuffer = [&](CommandBuffer& CB,uint32_t frameIndex,uint32_t imageIndex)
-    {
-        CB.begin();
-        _game.swapchain.beginRendering(CB,imageIndex,&depthBuffer);
-        
+        time_t t;
+        time(&t);
+        noise.SetSeed(t);
+        noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+        noise.SetFractalType(FastNoiseLite::FractalType_FBm);
+        noise.SetFrequency(0.005);
+        //noise.SetFractalGain(0.75);
+        noise.SetFractalOctaves(5);
+        //noise.SetFractalLacunarity(2);    
+
+        image.create(_game.commandPool,projectBaseDir/"assets"/"texture.jpg");
+        ubo->create(_game.device,_game.render.MAX_FRAMES_IN_FLIGHT);
+        dsLayout.create(_game.device,{
+            DescriptorLayout(0,vk::ShaderStageFlagBits::eVertex  ,vk::DescriptorType::eUniformBuffer),
+            //DescriptorLayout(1,vk::ShaderStageFlagBits::eFragment,vk::DescriptorType::eCombinedImageSampler),
+        });
+        ds.create(_game.device,_game.render,dsLayout,{
+            DescriptorLayout(0,vk::ShaderStageFlagBits::eVertex  ,vk::DescriptorType::eUniformBuffer),
+            //Descriptor(1,vk::ShaderStageFlagBits::eFragment,image),
+        });
+        ds.setResource(0, ubo);
+
+        depthBuffer.create(_game.commandPool,_game.swapchain);
+        pipeline.create(_game.device,
+            projectBaseDir/"bin"/"slang.spv",
+            "vertMain","fragMain",
+            _game.swapchain, dsLayout,depthBuffer);
+
+        for (size_t x = 0; x < range; x++){
+            for (size_t y = 0; y < range; y++){
+                for (size_t z = 0; z < range; z++){
+                    chunk[x][y][z].create(_game.device,_game.commandPool,noise,x*32,-32+y*32,z*32);
+                }
+            }
+            
+        }
+    }
+    void draw(Game& _game,CommandBuffer& CB,uint32_t frameIndex,uint32_t imageIndex){
         float aspectRatio = static_cast<float>(_game.swapchain.swapChainExtent.width) / static_cast<float>(_game.swapchain.swapChainExtent.height);
 
         bool zoom = glfwGetKey(_game.window,GLFW_KEY_C) == GLFW_PRESS;
@@ -285,24 +289,24 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
                 }
             }
         }
-    
-        {
-            commandBuffer.setViewport(0, vk::Viewport{
-                .x = 0.0f,
-                .y = 0.0f,
-                .width = static_cast<float>(_game.swapchain.swapChainExtent.width),
-                .height = static_cast<float>(_game.swapchain.swapChainExtent.height),
-                .minDepth = 0.0f,
-                .maxDepth = 1.0f,
-            });
-            commandBuffer.setScissor(0, vk::Rect2D{
-                .offset = vk::Offset2D{.x = 0,.y = 0},
-                .extent = _game.swapchain.swapChainExtent,
-            });
-            gs.draw(_game.window,_game.device,_game.commandPool,CB,_game.render);
+    }
 
-        }
+};
+void game(Game& _game,std::filesystem::path projectBaseDir) {
+    DepthBuffer depthBuffer;
+    WorldRenderer wr;
+    wr.init(_game, projectBaseDir,depthBuffer);
+    GuiSystem gs;
+    gs.create(_game.device,_game.commandPool,_game.swapchain,_game.render,projectBaseDir,depthBuffer);
+   
+    // TODO refactor the following in the future:
+    auto recordCommandBuffer = [&](CommandBuffer& CB,uint32_t frameIndex,uint32_t imageIndex)
+    {
+        CB.begin();
+        _game.swapchain.beginRendering(CB,imageIndex,&depthBuffer);
         
+        wr.draw(_game,CB, frameIndex, imageIndex);
+        gs.draw(_game,_game.commandPool,CB,_game.render);
         
         _game.swapchain.endRendering(CB,imageIndex);
         CB.end();
@@ -312,11 +316,7 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
     
 
 
-    //FPS counter
-    auto lastSecond = std::chrono::steady_clock::now();
-    size_t frames = 0;
-    auto lastFrame = std::chrono::steady_clock::now();
-
+    FPSMessurement fpsCounter;
     while(_game.window.update()){
         glfwPollEvents();
         //drawing
@@ -324,6 +324,7 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
             ImageIndex imageIndex;
             if(!_game.render.begin(_game.window,_game.swapchain,_game.commandPool,&depthBuffer,imageIndex))
                 continue;
+            
             auto frameIndex = _game.render.getFrameIndex();
             auto& CB        = _game.render.getCommandBuffer();
             
@@ -332,40 +333,21 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
         }
         
         //FRAMERATE STUFF
-        float delta;
-        {
-            auto now = std::chrono::steady_clock::now();
-            if(std::chrono::duration_cast<std::chrono::milliseconds>(now-lastSecond).count()>=1000){
-                float frameTime = std::chrono::duration<float, std::chrono::microseconds::period>(now - lastFrame).count();
-                std::cout << "[FPS]" << frames << std::endl;
-                frames = 0;
-                lastSecond = now;
-            }
-            frames++;
-            // {
-            //     const int FPSLimit = 120;
-            //     auto now = std::chrono::steady_clock::now();
-            //     float delta = std::chrono::duration<float, std::chrono::seconds::period>(now - lastFrame).count();
-            //     if(delta < 1.f/FPSLimit){
-            //         float waittime = 1.f/FPSLimit-delta;
-            //         //std::this_thread::sleep_for(std::chrono::milliseconds((int)(waittime*1000)));
-            //     }
-            // }
+        fpsCounter.update();
 
-            auto currentTime = std::chrono::steady_clock::now();
-            delta = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - lastFrame).count();
-            lastFrame = currentTime;
-        }
         //camera 
         if(_game.window.grabMouse)
         {
-            camera.update(_game.window,delta);   
+            wr.camera.update(_game.window,fpsCounter.delta);   
         }
         
     }
     _game.device.device.waitIdle();
 }
 int main(int argc, char const *argv[]){
+    time_t t;
+    time(&t);
+    srand(t);
     auto projectBaseDir = std::filesystem::canonical(argv[0]).parent_path().parent_path().parent_path();
     try{
         Game _game(projectBaseDir);

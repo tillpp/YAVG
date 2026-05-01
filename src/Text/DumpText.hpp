@@ -14,7 +14,7 @@
 #include "Text/TexturePacker.hpp"
 
 /*
-    Can only represent ASCII characters. 
+    Can only represent non-CTL characters. 
 */
 
 class Font
