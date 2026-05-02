@@ -6,6 +6,7 @@
 
 void RenderSync::create(CommandPool& pool,Swapchain& swapchain){
     auto& device = pool.getDevice();
+    this->device = &device;
     assert(presentCompleteSemaphores.empty() && renderFinishedSemaphores.empty() && inFlightFences.empty());
     for (size_t i = 0; i < swapchain.images.size(); i++)
     {
@@ -18,6 +19,23 @@ void RenderSync::create(CommandPool& pool,Swapchain& swapchain){
         commandBuffers.emplace_back(pool);
     }
     
+}
+void RenderSync::TrashLayer::clear(){
+    pipelineLayouts.clear();
+    pipelines.clear();
+    descriptorSets.clear();
+    descriptorPools.clear();
+    buffers.clear();
+    deviceMemorys.clear();
+    reincarnations.clear();
+}
+
+RenderSync::~RenderSync(){
+    if(device)
+        device->device.waitIdle();
+    for (auto& tl : trashLayer) {
+        tl.clear();
+    }
 }
 
 uint32_t RenderSync::getFrameIndex()const{
@@ -73,6 +91,7 @@ bool RenderSync::begin(
 	commandBuffers[frameIndex].commandBuffer.reset();
 
     imageIndex = _imageIndex;
+    trashLayer[frameIndex].clear();
     return true;
 }
 void RenderSync::end(
@@ -114,6 +133,7 @@ void RenderSync::end(
         // There are no other success codes than eSuccess; on any error code, presentKHR already threw an exception.
         assert(result == vk::Result::eSuccess);
     }
+    
     
     frameIndex = (frameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
 }

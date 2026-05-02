@@ -101,8 +101,11 @@ void Window::toggleFullscreen(){
 }
 void Window::toggleMouseGrab(){
     grabMouse =! grabMouse;
-    if(grabMouse)  
+    if(grabMouse)  {
         glfwSetInputMode(window,GLFW_CURSOR,GLFW_CURSOR_DISABLED);
+        if (glfwRawMouseMotionSupported())
+            glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+    }
     else    
         glfwSetInputMode(window,GLFW_CURSOR,GLFW_CURSOR_NORMAL);
 }

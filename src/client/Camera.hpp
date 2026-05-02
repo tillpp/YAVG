@@ -16,8 +16,8 @@ class Camera
 public:
     std::shared_ptr<UBO> ubo = std::make_shared<UBO>();
 
-    void create(Device& device,RenderSync& render){
-        ubo->create(device, render.MAX_FRAMES_IN_FLIGHT,sizeof(UniformBufferObject));
+    void create(Device& device,RenderSync* render){
+        ubo->create(render,device,sizeof(UniformBufferObject));
     }
 
     glm::vec3 pos = glm::vec3(1.0f, 5.0f, 5.0f);

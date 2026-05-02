@@ -2,6 +2,7 @@
 #include "glm/ext/vector_float2.hpp"
 #include "glm/ext/vector_int2.hpp"
 #include "vulkan/setup/CommandBuffer.hpp"
+#include "vulkan/setup/RenderSync.hpp"
 #include "vulkan_old/Buffer.hpp"
 #include "vulkan_old/Image.hpp"
 #include <cstddef>
@@ -43,7 +44,7 @@ public:
 
     void loadFromFile(std::filesystem::path _path);
 
-    Glyph getGlyph(CommandPool& pool,size_t frameIndex,uint32_t c);
+    Glyph getGlyph(RenderSync* render,CommandPool& pool,uint32_t c);
 };
 
 class Text{
@@ -53,17 +54,13 @@ class Text{
 
         size_t vertexCount;
     };
-    std::map<size_t,std::shared_ptr<VertexBuffer>> legacy;
     std::shared_ptr<VertexBuffer> buffer;
 public:
+
+    void setString(Font& font,CommandPool& pool,RenderSync* render,std::u32string string);
+    void setString(Font& font,CommandPool& pool,RenderSync* render,std::u8string string);
     
-    void setString(Font& font,CommandPool& pool,size_t frameIndex,std::u32string string);
-    void setString(Font& font,CommandPool& pool,size_t frameIndex,std::u8string string);
-    
-    void draw(CommandBuffer& CB,size_t frameIndex){
-        if(this->legacy.find(frameIndex) != legacy.end()){
-            legacy.erase(frameIndex);
-        }
+    void draw(CommandBuffer& CB){
         CB.commandBuffer.bindVertexBuffers(0, *buffer->buffer, {0});
         CB.commandBuffer.draw(static_cast<uint32_t>(buffer->vertexCount), 1, 0, 0);
     }

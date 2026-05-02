@@ -8,6 +8,7 @@
 #include "vulkan/Descriptor.hpp"
 #include "vulkan/Header.hpp"
 #include "vulkan/setup/CommandPool.hpp"
+#include "vulkan/setup/RenderSync.hpp"
 #include <filesystem>
 #include <memory>
 #include <vulkan/vulkan.hpp>
@@ -146,7 +147,7 @@ public:
     Image(){}
     ~Image(){}
 
-    void create(CommandPool& pool,std::filesystem::path path){        
+    void create(RenderSync* render,CommandPool& pool,std::filesystem::path path){        
         //load image
         int texWidth = 0, texHeight = 0, texChannels = 0;
         auto pathAsString = path.string();
@@ -155,16 +156,17 @@ public:
         if (!pixels) {
             throw std::runtime_error("failed to load texture image!");
         }
-        create(pool,texWidth, texHeight,pixels);
+        create(render,pool,texWidth, texHeight,pixels);
         stbi_image_free(pixels);
     }
-    void create(CommandPool& pool,int texWidth, int texHeight,stbi_uc* pixels){
+    void create(RenderSync* render,CommandPool& pool,int texWidth, int texHeight,stbi_uc* pixels){
         auto& device = pool.getDevice();
         vk::DeviceSize imageSize = texWidth * texHeight * 4;
         // load into stating Buffer
         Buffer stagingBuffer;
         {
             stagingBuffer.createBuffer(
+                render,
                 device,
                 imageSize,
                 vk::BufferUsageFlagBits::eTransferSrc,

@@ -1,8 +1,11 @@
 #pragma once
 #include "vulkan/setup/Device.hpp"
+#include <algorithm>
+#include <cstddef>
 #include <glm/glm.hpp>
 #include <array>
 #include "vulkan/setup/CommandBuffer.hpp"
+#include "vulkan/setup/RenderSync.hpp"
 
 struct Vertex
 {
@@ -43,7 +46,8 @@ public:
 
         throw std::runtime_error("failed to find suitable memory type!");
     }
-    void createBuffer(Device& device,vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties) {
+    void createBuffer(RenderSync* render,Device& device,vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties) {
+        this->render = render;
         vk::BufferCreateInfo bufferInfo{ .size = size, .usage = usage, .sharingMode = vk::SharingMode::eExclusive };
         buffer = vk::raii::Buffer(device.device, bufferInfo);
         vk::MemoryRequirements memRequirements = buffer.getMemoryRequirements();
@@ -66,7 +70,7 @@ public:
     }
 public:
     //create vertexBuffer
-    void createVertexBuffer(CommandPool& commandPool,const Vertex* ptr,size_t count){
+    void createVertexBuffer(RenderSync* render,CommandPool& commandPool,const Vertex* ptr,size_t count){
         Device& device = commandPool.getDevice();
         //create StagingBuffer
         Buffer stagingBuffer;
@@ -74,7 +78,7 @@ public:
             auto size = sizeof(ptr[0]) * count;
             auto usage = vk::BufferUsageFlagBits::eTransferSrc;
             auto properties = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent;
-            stagingBuffer.createBuffer(device,size, usage,properties);
+            stagingBuffer.createBuffer(render,device,size, usage,properties);
 
             void* dataStaging = stagingBuffer.bufferMemory.mapMemory(0, size);
             memcpy(dataStaging, ptr ,size);
@@ -84,14 +88,14 @@ public:
         auto size = sizeof(ptr[0]) * count;
         auto usage = vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst;
         auto properties = vk::MemoryPropertyFlagBits::eDeviceLocal;
-        createBuffer(device,size, usage,properties);
+        createBuffer(render,device,size, usage,properties);
         
         copyBuffer(commandPool,stagingBuffer, *this, size);
     }
 
     //TODO: a lot of duplicate code with VertexBuffer create
     // create IndexBuffer
-    void createIndexBuffer(CommandPool& commandPool,const uint16_t* ptr,size_t count){
+    void createIndexBuffer(RenderSync* render,CommandPool& commandPool,const uint16_t* ptr,size_t count){
         Device& device = commandPool.getDevice();
         //create StagingBuffer
         Buffer stagingBuffer;
@@ -99,7 +103,7 @@ public:
             auto size = sizeof(ptr[0]) * count;
             auto usage = vk::BufferUsageFlagBits::eTransferSrc;
             auto properties = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent;
-            stagingBuffer.createBuffer(device,size, usage,properties);
+            stagingBuffer.createBuffer(render,device,size, usage,properties);
 
             void* dataStaging = stagingBuffer.bufferMemory.mapMemory(0, size);
             memcpy(dataStaging, ptr, size);
@@ -109,9 +113,15 @@ public:
         auto size = sizeof(ptr[0]) * count;
         auto usage = vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst;
         auto properties = vk::MemoryPropertyFlagBits::eDeviceLocal;
-        createBuffer(device,size, usage,properties);
+        createBuffer(render,device,size, usage,properties);
         
         copyBuffer(commandPool,stagingBuffer, *this, size);
+    }
+    RenderSync* render = nullptr;
+    
+    ~Buffer(){
+        if(render)
+            render->trash(std::move(buffer),std::move(bufferMemory));
     }
 };
 //TODO add a parameter in the pipeline to add VertexBuffer.

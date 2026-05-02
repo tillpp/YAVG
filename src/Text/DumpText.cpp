@@ -5,6 +5,7 @@
 #include "glm/ext/vector_int2.hpp"
 #include "vulkan/setup/CommandBuffer.hpp"
 #include "vulkan/setup/CommandPool.hpp"
+#include "vulkan/setup/RenderSync.hpp"
 #include "vulkan/vulkan.hpp"
 #include "vulkan_old/Buffer.hpp"
 #include <cstdint>
@@ -56,7 +57,7 @@ void Font::loadFromFile(std::filesystem::path _path){
     }
     FT_Set_Pixel_Sizes(face, 0, 48);  
 }
-Font::Glyph Font::getGlyph(CommandPool& pool,size_t frameIndex,uint32_t c){
+Font::Glyph Font::getGlyph(RenderSync* render,CommandPool& pool,uint32_t c){
     if(glyphs.contains(c))
         return glyphs[c];
     if (FT_Load_Char(face, c, FT_LOAD_RENDER))
@@ -83,7 +84,7 @@ Font::Glyph Font::getGlyph(CommandPool& pool,size_t frameIndex,uint32_t c){
     vk::DeviceSize imageSize = texWidth * texHeight * 1;
     
     Buffer stagingBuffer;
-    stagingBuffer.createBuffer(pool.getDevice(),imageSize,vk::BufferUsageFlagBits::eTransferSrc,vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+    stagingBuffer.createBuffer(render,pool.getDevice(),imageSize,vk::BufferUsageFlagBits::eTransferSrc,vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
     
     void* data = stagingBuffer.bufferMemory.mapMemory(0, imageSize);
     memcpy(data, pixels, imageSize);
@@ -184,7 +185,7 @@ Font::Glyph Font::getGlyph(CommandPool& pool,size_t frameIndex,uint32_t c){
     glyphs[c] = glyph;
     return glyph;
 }
-void Text::setString(Font& font,CommandPool& pool,size_t frameIndex,std::u8string str){
+void Text::setString(Font& font,CommandPool& pool,RenderSync* render,std::u8string str){
     std::u32string u32string;
     //convert u8 to u32string:
     {
@@ -203,14 +204,14 @@ void Text::setString(Font& font,CommandPool& pool,size_t frameIndex,std::u8strin
             u32string += c32;
         }
     }
-    setString(font,pool,frameIndex,u32string);
+    setString(font,pool,render,u32string);
 }
-void Text::setString(Font& font,CommandPool& pool,size_t frameIndex,std::u32string str){
+void Text::setString(Font& font,CommandPool& pool,RenderSync* render ,std::u32string str){
     std::vector<Vertex> vertices;
     std::vector<Font::Glyph> glyphs;
     
     for (auto& c : str) {
-        auto glyph = font.getGlyph(pool, frameIndex, c);
+        auto glyph = font.getGlyph(render,pool, c);
         glyphs.push_back(glyph);
     }
 
@@ -236,8 +237,8 @@ void Text::setString(Font& font,CommandPool& pool,size_t frameIndex,std::u32stri
         advance += glyph.advance/48;
     }
     auto newBuffer = std::make_shared<VertexBuffer>();
-    newBuffer->createVertexBuffer(pool, vertices.data(), vertices.size());
+    newBuffer->createVertexBuffer(render,pool, vertices.data(), vertices.size());
     newBuffer->vertexCount = vertices.size();
-    legacy[frameIndex] = buffer;
+
     buffer = newBuffer;
 }

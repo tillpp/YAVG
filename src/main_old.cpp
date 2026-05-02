@@ -82,19 +82,20 @@ public:
         Device& device,
         CommandPool& pool,
         Swapchain& swapchain,
-        RenderSync& render,
+        RenderSync* render,
         std::filesystem::path projectBaseDir,
         DepthBuffer& depthBuffer){
 
+    
         dsLayout.create(device,{
             DescriptorLayout(1,vk::ShaderStageFlagBits::eFragment, vk::DescriptorType::eCombinedImageSampler),
         });
 
         font.loadFromFile(projectBaseDir/"assets"/"fonts"/"unscii-16-full.ttf");
-        font.getGlyph(pool,render.getFrameIndex(),'-');
-        text.setString(font, pool, render.getFrameIndex(), u8"Suffer alone    😈");
-        text2.setString(font, pool, render.getFrameIndex(), u8"Suffer together 😈 😈");
-        text3.setString(font, pool, render.getFrameIndex(), u8"Exit");
+        font.getGlyph(render,pool,'-');
+        text.setString(font, pool,  render , u8"Suffer alone    😈");
+        text2.setString(font, pool, render, u8"Suffer together 😈 😈");
+        text3.setString(font, pool, render, u8"Exit");
 
         ds2.create(device,render,dsLayout,{
             DescriptorLayout(1,vk::ShaderStageFlagBits::eFragment, vk::DescriptorType::eCombinedImageSampler),
@@ -102,15 +103,15 @@ public:
         ds2.setResource(1, font.image);
         
         pushConstant.create(vk::ShaderStageFlagBits::eVertex,0,sizeof(PushConstantBlock));
-        pipeline.create(device,projectBaseDir/"bin"/"gui.spv",
+        pipeline.create(render,device,projectBaseDir/"bin"/"gui.spv",
             "vertMain","fragMain",swapchain,dsLayout,depthBuffer,false,&pushConstant
         );
         pushConstantText.create(vk::ShaderStageFlagBits::eVertex,0,sizeof(PushConstantBlockText));
-        pipelineText.create(device,projectBaseDir/"bin"/"text.spv",
+        pipelineText.create(render,device,projectBaseDir/"bin"/"text.spv",
             "vertMain","fragMain",swapchain,dsLayout,depthBuffer,false,&pushConstantText
         );
-        vertexBuffer.createVertexBuffer(pool,vertices.data(),vertices.size());
-        indexBuffer.createIndexBuffer(pool,indices.data(),indices.size());
+        vertexBuffer.createVertexBuffer(render,pool,vertices.data(),vertices.size());
+        indexBuffer.createIndexBuffer(  render,pool,indices.data(),indices.size());
 
         t= std::chrono::steady_clock::now();
     }
@@ -118,7 +119,7 @@ public:
     bool reset = false;
     bool f = true;
     std::chrono::steady_clock::time_point t;
-    void draw(Game& _game,CommandPool& pool,CommandBuffer& buffer,RenderSync& render){
+    void draw(Game& _game,CommandPool& pool,CommandBuffer& buffer,RenderSync* render){
         buffer.commandBuffer.setViewport(0, vk::Viewport{
             .x = 0.0f,
             .y = 0.0f,
@@ -131,7 +132,6 @@ public:
             .offset = vk::Offset2D{.x = 0,.y = 0},
             .extent = _game.swapchain.swapChainExtent,
         });
-        auto fi = render.getFrameIndex();
         
         if(glfwGetKey(_game.window, GLFW_KEY_Y)){
             
@@ -142,12 +142,12 @@ public:
             // while(glfwGetKey(window, GLFW_KEY_Y)){
             //     glfwWaitEvents();
             // }
-            text.setString(font, pool, render.getFrameIndex(), u8"hi");
+            text.setString(font, pool, render, u8"hi");
         }
         if(_game.window.textInput.size()){
             string += _game.window.textInput;
             _game.window.textInput.clear();
-            text.setString(font,pool, render.getFrameIndex(), string);
+            text.setString(font,pool, render, string);
         }
         auto& commandBuffer = buffer.commandBuffer;
 
@@ -160,7 +160,7 @@ public:
         // commandBuffer.drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0,0);
         
         commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineText.graphicsPipeline);
-        ds2.bind(_game.device,commandBuffer,render,pipelineText);
+        ds2.bind(_game.device,commandBuffer,*render,pipelineText);
         Text* texts[] = {&text,&text2,&text3};
 
 
@@ -168,7 +168,7 @@ public:
         for (auto& text : texts) {
             pushConstantText.use(buffer,pipelineText,PushConstantBlockText(glm::vec2(1920,1080),glm::vec2(660,400+i*100),glm::vec2(60,60),font.texturePacker.getSize()));
 
-            text->draw(buffer,render.getFrameIndex());
+            text->draw(buffer);
             i++;
             if(i==2){
                 if(std::chrono::steady_clock::now() > t+std::chrono::milliseconds(400))
@@ -190,7 +190,7 @@ struct Chunk2{
     std::vector<Vertex> vertices;
     std::vector<uint16_t> indices;
 
-    void create(Device& device,CommandPool& pool,FastNoiseLite& noise,size_t xOffset,size_t yOffset,size_t zOffset){
+    void create(RenderSync* render,Device& device,CommandPool& pool,FastNoiseLite& noise,size_t xOffset,size_t yOffset,size_t zOffset){
         {
             char* data = new char[33*33*33];
             for (size_t x = 0; x < 33; x++){
@@ -213,8 +213,8 @@ struct Chunk2{
         indices = mw.index;
 
         if(indices.size()){
-            vertexBuffer.createVertexBuffer(pool,vertices.data(),vertices.size());
-            indexBuffer.createIndexBuffer(pool,indices.data(),indices.size());
+            vertexBuffer.createVertexBuffer(render,pool,vertices.data(),vertices.size());
+            indexBuffer.createIndexBuffer(  render,pool,indices.data(),indices.size());
         }
     }
     void draw(CommandBuffer& buffer){
@@ -236,6 +236,7 @@ struct WorldRenderer{
     FastNoiseLite noise;
     static const size_t range = 3;
     Chunk2 chunk[range][range][range];
+
     void init(Game& _game,std::filesystem::path projectBaseDir,DepthBuffer& depthBuffer){
 
         time_t t;
@@ -248,21 +249,21 @@ struct WorldRenderer{
         noise.SetFractalOctaves(5);
         //noise.SetFractalLacunarity(2);    
 
-        image.create(_game.commandPool,projectBaseDir/"assets"/"texture.jpg");
+        image.create(&_game.render,_game.commandPool,projectBaseDir/"assets"/"texture.jpg");
         
-        camera.create(_game.device,_game.render);
+        camera.create(_game.device,&_game.render);
         dsLayout.create(_game.device,{
             DescriptorLayout(0,vk::ShaderStageFlagBits::eVertex  ,vk::DescriptorType::eUniformBuffer),
             //DescriptorLayout(1,vk::ShaderStageFlagBits::eFragment,vk::DescriptorType::eCombinedImageSampler),
         });
-        ds.create(_game.device,_game.render,dsLayout,{
+        ds.create(_game.device,&_game.render,dsLayout,{
             DescriptorLayout(0,vk::ShaderStageFlagBits::eVertex  ,vk::DescriptorType::eUniformBuffer),
             //Descriptor(1,vk::ShaderStageFlagBits::eFragment,image),
         });
         ds.setResource(0, camera.ubo);
 
         depthBuffer.create(_game.commandPool,_game.swapchain);
-        pipeline.create(_game.device,
+        pipeline.create(&_game.render,_game.device,
             projectBaseDir/"bin"/"slang.spv",
             "vertMain","fragMain",
             _game.swapchain, dsLayout,depthBuffer);
@@ -270,7 +271,7 @@ struct WorldRenderer{
         for (size_t x = 0; x < range; x++){
             for (size_t y = 0; y < range; y++){
                 for (size_t z = 0; z < range; z++){
-                    chunk[x][y][z].create(_game.device,_game.commandPool,noise,x*32,-32+y*32,z*32);
+                    chunk[x][y][z].create(&_game.render,_game.device,_game.commandPool,noise,x*32,-32+y*32,z*32);
                 }
             }
             
@@ -317,8 +318,9 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
     DepthBuffer depthBuffer;
     WorldRenderer wr;
     wr.init(_game, projectBaseDir,depthBuffer);
-    GuiSystem gs;
-    gs.create(_game.device,_game.commandPool,_game.swapchain,_game.render,projectBaseDir,depthBuffer);
+    GuiSystem* gs = new GuiSystem;
+    
+    gs->create(_game.device,_game.commandPool,_game.swapchain,&_game.render,projectBaseDir,depthBuffer);
    
     // TODO refactor the following in the future:
     auto recordCommandBuffer = [&](CommandBuffer& CB,uint32_t frameIndex,uint32_t imageIndex)
@@ -327,8 +329,14 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
         _game.swapchain.beginRendering(CB,imageIndex,&depthBuffer);
         
         wr.draw(_game,CB, frameIndex, imageIndex);
-        gs.draw(_game,_game.commandPool,CB,_game.render);
+        if(glfwGetKey(_game.window, GLFW_KEY_P)){
+            delete gs;
+            gs = 0;
+        }
+        if(gs)
+            gs->draw(_game,_game.commandPool,CB,&_game.render);
         
+            
         _game.swapchain.endRendering(CB,imageIndex);
         CB.end();
     };
@@ -364,6 +372,7 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
         
     }
     _game.device.device.waitIdle();
+    delete gs;
 }
 int main(int argc, char const *argv[]){    
     time_t t;

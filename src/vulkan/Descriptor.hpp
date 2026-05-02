@@ -45,14 +45,30 @@ class DescriptorSet{
     };
     std::vector<Binding> bindings;
     std::map<size_t, size_t> mappingID2Index;
+
+    RenderSync* render = nullptr;
 public:
     vk::raii::DescriptorPool descriptorPool = nullptr;
     std::vector<vk::raii::DescriptorSet> descriptorSets;
 
 
-    void create(Device& device,RenderSync& render,DescriptorSetLayout& dsl,std::vector<DescriptorLayout> dsArray);
+    void create(Device& device,RenderSync* render,DescriptorSetLayout& dsl,std::vector<DescriptorLayout> dsArray);
     void bind(Device& device,vk::raii::CommandBuffer& commandBuffer,RenderSync& render, class Pipeline& pipeline,uint32_t firstSet = 0);
 
     void setResource(size_t binding,std::shared_ptr<Resource> resource);
+
+    ~DescriptorSet(){
+        if(render){
+            for(auto& bind:bindings){
+                for(auto& frame:bind.frames){
+                    render->trash(frame.reincarnation);
+                }
+            }
+            render->trash(std::move(descriptorPool));
+            for(auto& ds:descriptorSets){
+                render->trash(std::move(ds));
+            }
+        }
+    }
 };
 

@@ -8,7 +8,8 @@
 #include <cassert>
 #include <vector>
 
-void DescriptorSet::create(Device& device,RenderSync& render,DescriptorSetLayout& dsl,std::vector<DescriptorLayout> dsArray){
+void DescriptorSet::create(Device& device,RenderSync* render,DescriptorSetLayout& dsl,std::vector<DescriptorLayout> dsArray){
+    this->render = render;
     //pool creation
     {
         std::map<vk::DescriptorType,uint32_t> poolsizes;
@@ -23,20 +24,20 @@ void DescriptorSet::create(Device& device,RenderSync& render,DescriptorSetLayout
             poolSize.push_back(
                 vk::DescriptorPoolSize{
                     .type = pair.first,
-                    .descriptorCount = render.MAX_FRAMES_IN_FLIGHT*pair.second,
+                    .descriptorCount = render->MAX_FRAMES_IN_FLIGHT*pair.second,
                 }
             );
         }
         vk::DescriptorPoolCreateInfo poolInfo{ 
             .flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-            .maxSets = render.MAX_FRAMES_IN_FLIGHT,
+            .maxSets = render->MAX_FRAMES_IN_FLIGHT,
             .poolSizeCount = (uint32_t)poolSize.size(),
             .pPoolSizes = poolSize.data(),
         };
         descriptorPool = vk::raii::DescriptorPool(device.device, poolInfo);
     }
     {
-        std::vector<vk::DescriptorSetLayout> layouts(render.MAX_FRAMES_IN_FLIGHT, *dsl.descriptorSetLayout);
+        std::vector<vk::DescriptorSetLayout> layouts(render->MAX_FRAMES_IN_FLIGHT, *dsl.descriptorSetLayout);
         vk::DescriptorSetAllocateInfo allocInfo{ 
             .descriptorPool = descriptorPool, 
             .descriptorSetCount = static_cast<uint32_t>(layouts.size()), 
@@ -48,7 +49,7 @@ void DescriptorSet::create(Device& device,RenderSync& render,DescriptorSetLayout
     }
     for (auto& dsLayout : dsArray) {
         mappingID2Index[dsLayout.binding] = bindings.size();
-        bindings.emplace_back(render,dsLayout);
+        bindings.emplace_back(*render,dsLayout);
     }
 }
 void DescriptorSet::bind(Device& device,vk::raii::CommandBuffer& commandBuffer,RenderSync& render, Pipeline& pipeline,uint32_t firstSet ){

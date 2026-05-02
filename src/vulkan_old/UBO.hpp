@@ -1,6 +1,7 @@
 #pragma once
 #include "vulkan/Descriptor.hpp"
 #include "vulkan/setup/Device.hpp"
+#include "vulkan/setup/RenderSync.hpp"
 #include "vulkan_old/Buffer.hpp"
 #include <algorithm>
 #include <cstddef>
@@ -37,18 +38,16 @@ public:
     size_t size;
     std::vector<std::shared_ptr<Reincarnation>> frames;
 
-    void create(Device& device,const size_t MAX_FRAMES_IN_FLIGHT,vk::DeviceSize bufferSize){
+    void create(RenderSync* render,Device& device,vk::DeviceSize bufferSize){
         this->size = bufferSize;
         // for memory
         frames.clear();
 
-        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            Buffer buffer;
-            buffer.createBuffer(device,bufferSize,vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+        for (size_t i = 0; i < render->MAX_FRAMES_IN_FLIGHT; i++) {
             
             auto reincarnation = std::make_shared<Reincarnation>();
             frames.push_back(reincarnation);
-            reincarnation->buffer        = std::move(buffer);
+            reincarnation->buffer.createBuffer(render,device,bufferSize,vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
             reincarnation->buffersMapped = std::move(reincarnation->buffer.bufferMemory.mapMemory(0, bufferSize));
             reincarnation->size          = bufferSize;
         }

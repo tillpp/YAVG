@@ -13,6 +13,7 @@
     return shaderModule;
 }
 void Pipeline::create(
+    RenderSync* render,
     Device& device,
     std::filesystem::path shaderFile, 
     std::string entryFnVertex, 
@@ -22,7 +23,7 @@ void Pipeline::create(
     DepthBuffer& depthBuffer,bool depthTesting,
     std::optional<PushConstant*> pushConstant
 ) {
-
+    this->render = render;
     // shader
     vk::raii::ShaderModule shaderModule = createShaderModule(device,readFileOrThrow(shaderFile));
     vk::PipelineShaderStageCreateInfo vertShaderStageInfo{ 
