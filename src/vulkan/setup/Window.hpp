@@ -1,6 +1,7 @@
 #pragma once
 #include "vulkan/Header.hpp"
 #include "vulkan/setup/Instance.hpp"
+#include <memory>
 
 
 class Window

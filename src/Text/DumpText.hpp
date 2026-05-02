@@ -56,6 +56,7 @@ class Text{
     };
     std::shared_ptr<VertexBuffer> buffer;
 public:
+    double width;
 
     void setString(Font& font,CommandPool& pool,RenderSync* render,std::u32string string);
     void setString(Font& font,CommandPool& pool,RenderSync* render,std::u8string string);

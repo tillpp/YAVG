@@ -14,10 +14,11 @@ ConstantBuffer<UniformBuffer> ubo;
 
 struct VertexOutput {
     float4 sv_position : SV_Position;
-    float3 color;
+    float4 color;
     float2 fragTexCoord;
 };
 struct PushConstants {
+    float4 color;
     float2 pos;
     float2 size;
     int2 texSize;
@@ -28,7 +29,7 @@ struct PushConstants {
 VertexOutput vertMain(VSInput input,uint vid : SV_VertexID,uint iid :SV_InstanceID) {
     VertexOutput output;
     output.sv_position = float4(float3(input.inPosition.xz * pc.size.xy * 2 + pc.pos.xy*2 - float2(1), 0), 1.0);
-    output.color = input.inColor;
+    output.color = pc.color;
     output.fragTexCoord = input.inTexCoord / pc.texSize;
     return output;
 }
@@ -38,6 +39,6 @@ Sampler2D texture;
 [shader("fragment")]
 float4 fragMain(VertexOutput inVert) : SV_Target
 {
-    float3 color = texture.Sample(inVert.fragTexCoord).xyz; // inVert.color
-    return float4(float3(1),color.r);
+    float3 color = texture.Sample(inVert.fragTexCoord).xyz;
+    return float4(float3(1), color.r) * inVert.color;
 }

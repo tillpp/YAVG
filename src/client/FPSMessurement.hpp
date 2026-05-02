@@ -2,6 +2,7 @@
 
 //FPS counter
 #include <chrono>
+#include <cstddef>
 #include <iostream>
 struct FPSMessurement{
     
@@ -11,6 +12,7 @@ public:
     size_t frames = 0;
     float delta = 0;
 
+    size_t currentFPS = 0;
     FPSMessurement(){
 
     }
@@ -19,6 +21,7 @@ public:
         if(std::chrono::duration_cast<std::chrono::milliseconds>(now-lastSecond).count()>=1000){
             float frameTime = std::chrono::duration<float, std::chrono::microseconds::period>(now - lastFrame).count();
             std::cout << "[FPS]" << frames << std::endl;
+            currentFPS = frames;
             frames = 0;
             lastSecond = now;
         }

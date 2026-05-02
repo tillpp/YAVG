@@ -216,6 +216,7 @@ void Text::setString(Font& font,CommandPool& pool,RenderSync* render ,std::u32st
     }
 
     float advance = 0;
+    width = 0;
     for(auto& glyph:glyphs){   
         glm::vec2 texPos  = glm::vec2(glyph.texPos);
         glm::vec2 texEnd = glm::vec2(glyph.texSize+glyph.texPos);
@@ -235,7 +236,9 @@ void Text::setString(Font& font,CommandPool& pool,RenderSync* render ,std::u32st
         };
         vertices.insert(vertices.end(), tmpVertices.begin(), tmpVertices.end());
         advance += glyph.advance/48;
+        width = end.x;
     }
+
     auto newBuffer = std::make_shared<VertexBuffer>();
     newBuffer->createVertexBuffer(render,pool, vertices.data(), vertices.size());
     newBuffer->vertexCount = vertices.size();

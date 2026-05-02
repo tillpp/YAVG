@@ -3,6 +3,7 @@
 #include "GLFW/glfw3.h"
 #include "client/FPSMessurement.hpp"
 #include "glm/ext/vector_float2.hpp"
+#include "glm/ext/vector_float4.hpp"
 #include "vulkan/DescriptorLayout.hpp"
 #include "vulkan/setup/Window.hpp"
 #include "vulkan/setup/Device.hpp"
@@ -18,6 +19,7 @@
 #include <cstdlib>
 #include <memory>
 #include <ratio>
+#include <string>
 #include <thread>
 
 #include "client/Game.hpp"
@@ -45,6 +47,7 @@ const std::vector<Vertex> vertices = {
 const std::vector<uint16_t> indices = {
     0, 3, 2, 2, 1, 0};
 
+FPSMessurement fpsCounter;
 
 class GuiSystem{
 public:
@@ -53,7 +56,8 @@ public:
     Pipeline pipelineText;
     DescriptorSetLayout dsLayout;
     DescriptorSet ds2;
-    Text text,text2,text3;
+    Text text,text2,text3,text4;
+    std::string cachedText4;
     struct PushConstantBlock{
         glm::vec2 position;
         glm::vec2 size;
@@ -63,13 +67,15 @@ public:
         }
     };
     struct PushConstantBlockText{
+        glm::vec4 color;
         glm::vec2 position;
         glm::vec2 size;
         glm::ivec2 textAtlas;
-        PushConstantBlockText(glm::vec2 screenSize,glm::vec2 position,glm::vec2 size,glm::ivec2 textureAtlasSize){
+        PushConstantBlockText(glm::vec2 screenSize,glm::vec2 position,glm::vec2 size,glm::ivec2 textureAtlasSize,glm::vec4 color){
             this->position = position/screenSize;
             this->size     = size    /screenSize;
             this->textAtlas = textureAtlasSize;
+            this->color    = color;
         }
 
     };
@@ -96,6 +102,7 @@ public:
         text.setString(font, pool,  render , u8"Suffer alone    😈");
         text2.setString(font, pool, render, u8"Suffer together 😈 😈");
         text3.setString(font, pool, render, u8"Exit");
+        text4.setString(font, pool, render, u8"Hz");
 
         ds2.create(device,render,dsLayout,{
             DescriptorLayout(1,vk::ShaderStageFlagBits::eFragment, vk::DescriptorType::eCombinedImageSampler),
@@ -164,9 +171,37 @@ public:
         Text* texts[] = {&text,&text2,&text3};
 
 
+        // process mouse
+        auto screenSize = glm::dvec2(1920,1080);
+        glm::dvec2 rawMousPos;
+        glm::ivec2 realWindowSize;
+        glfwGetCursorPos(_game.window, &rawMousPos.x, &rawMousPos.y);
+        glfwGetFramebufferSize(_game.window, &realWindowSize.x, &realWindowSize.y);
+        glm::vec2 mousePosition = (rawMousPos/glm::dvec2(realWindowSize))*screenSize;
+        
+        //FPS
+        pushConstantText.use(buffer,pipelineText,PushConstantBlockText(screenSize,glm::vec2(0),glm::vec2(30),font.texturePacker.getSize(),glm::vec4(1)));
+        text4.draw(buffer);
+        std::string fpsString = std::to_string(fpsCounter.currentFPS)+" Hz";
+        if(cachedText4 != fpsString)
+            text4.setString(font, pool, render, std::u8string(fpsString.begin(),fpsString.end()).c_str());
+        cachedText4 = fpsString;
+
         size_t i = 0;
         for (auto& text : texts) {
-            pushConstantText.use(buffer,pipelineText,PushConstantBlockText(glm::vec2(1920,1080),glm::vec2(660,400+i*100),glm::vec2(60,60),font.texturePacker.getSize()));
+            auto position = glm::vec2(660,400+i*100);
+            auto size = glm::vec2(60,60);
+            auto color = glm::vec4(0.5,0.5,0.5,1);
+            //color = glm::vec4(0.3,0.3,0.7,1); TODO: make editable text blue
+            
+
+
+            if( position.x < mousePosition.x && mousePosition.x < position.x+size.x*text->width && position.y < mousePosition.y && mousePosition.y < position.y+size.y)
+                color = glm::vec4(1);
+
+
+
+            pushConstantText.use(buffer,pipelineText,PushConstantBlockText(screenSize,position,size,font.texturePacker.getSize(),color));
 
             text->draw(buffer);
             i++;
@@ -345,7 +380,6 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
     
 
 
-    FPSMessurement fpsCounter;
     while(_game.window.update()){
         glfwPollEvents();
         //drawing

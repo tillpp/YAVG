@@ -66,7 +66,18 @@ void Window::create(Instance& instance,int width, int height, const char *title)
         }else if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS){
             self->toggleMouseGrab();
         }
-
+        //text cursor keys
+        if(action == GLFW_PRESS || action == GLFW_REPEAT){
+            if(key == GLFW_KEY_LEFT){
+                std::cout << "left" << std::endl;
+            }
+            if(key == GLFW_KEY_RIGHT){
+                std::cout << "right" << std::endl;
+            }
+            if(key == GLFW_KEY_DELETE || key == GLFW_KEY_BACKSPACE){
+                std::cout << (rand()%50) << std::endl;
+            }
+        }
 
     });
     glfwSetCharCallback(window, [](GLFWwindow* window,unsigned int codepoint){
