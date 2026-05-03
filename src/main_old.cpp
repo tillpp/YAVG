@@ -17,6 +17,7 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
+#include <linux/input-event-codes.h>
 #include <memory>
 #include <ratio>
 #include <string>
@@ -196,8 +197,22 @@ public:
             
 
 
-            if( position.x < mousePosition.x && mousePosition.x < position.x+size.x*text->width && position.y < mousePosition.y && mousePosition.y < position.y+size.y)
+            if( position.x < mousePosition.x && mousePosition.x < position.x+size.x*text->width && position.y < mousePosition.y && mousePosition.y < position.y+size.y){
                 color = glm::vec4(1);
+                if(glfwGetMouseButton(_game.window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS){
+                    exit(0);
+                }
+                if(i==0)
+                    text->setString(font, pool, render, u8"Singleplayer");
+                if(i==1)
+                    text->setString(font, pool, render, u8"Multiplayer");
+            }else{
+                if(i==0)
+                    text->setString(font, pool, render, u8"Suffer alone    😈");
+                if(i==1)
+                    text->setString(font, pool, render, u8"Suffer together 😈 😈");
+
+            }
 
 
 
