@@ -94,6 +94,7 @@ bool Window::update(){
     assert(window);
     // TODO: maybe have an EventQueue that resets all changed variables. If we got a lot.
     framebufferResized = false;
+    textInput.clear();
     return !glfwWindowShouldClose(window);
 }
 void Window::toggleFullscreen(){

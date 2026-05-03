@@ -147,28 +147,33 @@ struct Server{
         }
     }
 };
+std::u8string toUTF8(std::u32string u32address)
+{
+    std::u8string u8address;
+
+    setlocale(LC_ALL, "en_US.utf8");
+    char buffer[MB_CUR_MAX];
+    std::mbstate_t state{}; 
+            
+    for (auto& c32: u32address) {
+        if(size_t rc = std::c32rtomb(buffer, c32, &state))
+        {
+            if (rc == (std::size_t) - 1)
+                break;
+            if (rc == (std::size_t) - 2)
+                break;
+            u8address += std::u8string(buffer,buffer+rc);
+        }
+    }
+    return u8address;
+}
 Server server;
 struct Client{
     TcpSocket socket;
-    void join(std::u32string u32address){
+    bool join(std::u32string u32address){
         //convert u32 to u8string:
-        std::u8string u8address;
-        {
-            setlocale(LC_ALL, "en_US.utf8");
-            char buffer[MB_CUR_MAX];
-            std::mbstate_t state{}; 
-            
-            for (auto& c32: u32address) {
-                if(size_t rc = std::c32rtomb(buffer, c32, &state))
-                {
-                    if (rc == (std::size_t) - 1)
-                        break;
-                    if (rc == (std::size_t) - 2)
-                        break;
-                    u8address += std::u8string(buffer,buffer+rc);
-                }
-            }
-        }
+        std::u8string u8address = toUTF8(u32address);
+        
         size_t split = u8address.find(':');
         std::u8string ip = u8address.substr(0,split); 
         std::u8string port = u8"5555";  
@@ -177,20 +182,43 @@ struct Client{
         }
         if(!socket.connect(ip, port)){
             std::cout << "failed to connect to "<<(char*)ip.c_str()<<" "<<(char*)port.c_str() << std::endl;
+            return false;
         }
-
-        while (socket.exist()) {
-            char buff[1000];
-            size_t received;
-            if(socket.recv(buff, 1000, received)){
-                std::cout << std::string(buff,buff+received) <<std::endl;
-            }
-
+        return true;
+    }
+    void sendUsername(std::u8string string){
+        size_t transmitted;
+        size_t index = 0;
+        while (index < string.size()) {
+            socket.send((char*)string.data()+index, string.size()-index, transmitted);
+            index += transmitted;
         }
     }
+        //     while (socket.exist()) {
+        //     char buff[1000];
+        //     size_t received;
+        //     if(socket.recv(buff, 1000, received)){
+        //         std::cout << std::string(buff,buff+received) <<std::endl;
+        //     }
+
+        // }
 };
 Client client;
 
+
+
+class MultiplayerLobby:public Screen{
+public:
+    void create(GuiSystem& gs,Setup& stp)override{
+
+    }
+    void draw(GuiSystem& gs,Setup& stp,glm::vec2 relativeMousePosition)override{
+
+    }
+    ~MultiplayerLobby(){
+
+    }
+};
 class MainMenu:public Screen{
     Text text,text2,text3,text4;
     std::u32string string;
@@ -244,21 +272,24 @@ class MultiplayerMenu:public Screen{
                     if(i < 2){
                         selected = texts[i];
                         selected->string.clear();
-                        stp.window.textInput.clear();
                     }else if(i==2){
-                        client.join(ipAddressLabel.string);
+                        if(client.join(ipAddressLabel.string)){
+                            client.sendUsername(toUTF8(nameLabel.string));
+                            gs.setScreen(stp, std::make_shared<class MultiplayerLobby>());
+                            return;
+                        }
                     }else if(i==3){
                         server.start(ipAddressLabel.string);
-                    }else if(i==4)
+                    }else if(i==4){
                         gs.setScreen(stp, std::make_shared<class MainMenu>());
                         return;
+                    }
                 }
             }
             if(texts[i]==selected){
                 color = glm::vec4(1,0,0,1);
                 if(stp.window.textInput.size()){
                     selected->setString(gs.font, stp.pool, stp.render, selected->string+stp.window.textInput);
-                    stp.window.textInput.clear();
                 }
             }
             gs.pushConstantText.use(stp.buffer,gs.pipelineText,GuiSystem::PushConstantBlockText(screenSize,position,glm::vec2(60),gs.font.texturePacker.getSize(),color));
