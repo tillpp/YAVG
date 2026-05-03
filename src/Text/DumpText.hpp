@@ -11,6 +11,7 @@
 #include <filesystem>
 #include <ft2build.h>
 #include <memory>
+#include <string_view>
 #include <vector>
 #include FT_FREETYPE_H  
 #include "vulkan/setup/CommandPool.hpp"
@@ -58,8 +59,8 @@ public:
     std::u32string string;
     double width;
 
-    void setString(Font& font,CommandPool& pool,RenderSync* render,std::u32string string);
-    void setString(Font& font,CommandPool& pool,RenderSync* render,std::u8string string);
+    void setString(Font& font,CommandPool& pool,RenderSync* render,std::u32string_view string);
+    void setString(Font& font,CommandPool& pool,RenderSync* render,std::u8string_view string);
     
     void draw(CommandBuffer& CB){
         CB.commandBuffer.bindVertexBuffers(0, *buffer->buffer, {0});

@@ -13,6 +13,7 @@
 #include <exception>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -185,7 +186,7 @@ Font::Glyph Font::getGlyph(RenderSync* render,CommandPool& pool,uint32_t c){
     glyphs[c] = glyph;
     return glyph;
 }
-void Text::setString(Font& font,CommandPool& pool,RenderSync* render,std::u8string str){
+void Text::setString(Font& font,CommandPool& pool,RenderSync* render,std::u8string_view str){
     std::u32string u32string;
     //convert u8 to u32string:
     {
@@ -206,7 +207,7 @@ void Text::setString(Font& font,CommandPool& pool,RenderSync* render,std::u8stri
     }
     setString(font,pool,render,u32string);
 }
-void Text::setString(Font& font,CommandPool& pool,RenderSync* render ,std::u32string str){
+void Text::setString(Font& font,CommandPool& pool,RenderSync* render ,std::u32string_view str){
     if(str == string)
         return;
     string = str;
