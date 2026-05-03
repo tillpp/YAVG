@@ -190,16 +190,28 @@ struct Client{
     }
 };
 Client client;
+
+class MainMenu:public Screen{
+    Text text,text2,text3,text4;
+    std::u32string string;
+    std::chrono::steady_clock::time_point start;
+public:
+    void create(GuiSystem& gs,Setup& stp)override;
+    void draw(GuiSystem& gs,Setup& stp,glm::vec2 relativeMousePosition)override;
+    ~MainMenu();
+};
 class MultiplayerMenu:public Screen{
     Text ipAddressLabel;
     Text nameLabel;
     Text join;
     Text host;
+    Text back;
     Text* selected = nullptr;
     void create(GuiSystem& gs,Setup& stp)override{
         host.setString(gs.font, stp.pool, stp.render, u8"Host");
         join.setString(gs.font, stp.pool, stp.render, u8"Join");
-
+        back.setString(gs.font, stp.pool, stp.render, u8"Back");
+        
     }
     void draw(GuiSystem& gs,Setup& stp,glm::vec2 relativeMousePosition)override{
         auto screenSize = glm::vec2(1920,1080);
@@ -214,14 +226,14 @@ class MultiplayerMenu:public Screen{
         if(!ipAddressLabel.string.size()&& &ipAddressLabel!=selected)
             ipAddressLabel.setString(gs.font, stp.pool, stp.render, u8"Enter Server Address");
 
-        Text* texts[] = {&ipAddressLabel,&nameLabel,&join,&host};
-        glm::vec2 positions[] = {glm::vec2(300,300),glm::vec2(300,420),glm::vec2(1200,900),glm::vec2(100,900)};
-        glm::vec4 colors[] = {glm::vec4(0.2,0.2,0.7,1),glm::vec4(0.2,0.2,0.7,1),glm::vec4(0.5),glm::vec4(0.5)};
+        Text* texts[] = {&ipAddressLabel,&nameLabel,&join,&host,&back};
+        glm::vec2 positions[] = {glm::vec2(300,300),glm::vec2(300,420),glm::vec2(1200,900),glm::vec2(100,900),glm::vec2(0,0)};
+        glm::vec4 colors[] = {glm::vec4(0.2,0.2,0.7,1),glm::vec4(0.2,0.2,0.7,1),glm::vec4(0.5),glm::vec4(0.5),glm::vec4(0.5)};
 
         if(glfwGetMouseButton(stp.window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS){  
             selected = nullptr;
         }
-        for (int i = 0;i<4 ;i++) {
+        for (int i = 0;i<5 ;i++) {
             auto& text = texts[i];
             auto position = positions[i];
             auto color = colors[i];
@@ -237,7 +249,9 @@ class MultiplayerMenu:public Screen{
                         client.join(ipAddressLabel.string);
                     }else if(i==3){
                         server.start(ipAddressLabel.string);
-                    }
+                    }else if(i==4)
+                        gs.setScreen(stp, std::make_shared<class MainMenu>());
+                        return;
                 }
             }
             if(texts[i]==selected){
@@ -252,14 +266,8 @@ class MultiplayerMenu:public Screen{
         }   
     }
 };
-class MainMenu:public Screen{
-    Text text,text2,text3,text4;
-    std::u32string string;
 
-public:
-    std::chrono::steady_clock::time_point start;
-
-    void create(GuiSystem& gs,Setup& stp)override{
+void MainMenu::create(GuiSystem& gs,Setup& stp){
         
         text.setString( gs.font, stp.pool, stp.render , u8"Suffer alone    😈");
         text2.setString(gs.font, stp.pool, stp.render, u8"Suffer together 😈 😈");
@@ -268,7 +276,7 @@ public:
         
         start = std::chrono::steady_clock::now();
     }
-    void draw(GuiSystem& gs,Setup& stp,glm::vec2 relativeMousePosition)override{
+void MainMenu::draw(GuiSystem& gs,Setup& stp,glm::vec2 relativeMousePosition){
         auto screenSize = glm::vec2(1920,1080);
         auto mousePosition = relativeMousePosition*screenSize;
 
@@ -342,10 +350,9 @@ public:
             }
         }
     } 
-    ~MainMenu(){
+    MainMenu::~MainMenu(){
 
     }
-};
 void GuiSystem::create(Setup& stp){
 
     
