@@ -4,6 +4,9 @@
 #include "client/FPSMessurement.hpp"
 #include "glm/ext/vector_float2.hpp"
 #include "glm/ext/vector_float4.hpp"
+#include "network/basic/SocketPoll.hpp"
+#include "network/basic/TcpListener.hpp"
+#include "network/basic/TcpSocket.hpp"
 #include "vulkan/DescriptorLayout.hpp"
 #include "vulkan/setup/Instance.hpp"
 #include "vulkan/setup/Window.hpp"
@@ -18,6 +21,7 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
+#include <cuchar>
 #include <linux/input-event-codes.h>
 #include <memory>
 #include <ratio>
@@ -112,13 +116,89 @@ public:
     void create(Setup& setup);
     void draw(Setup& setup);
 };
+struct Server{
+    TcpListener listener;
+    void start(std::u32string ipAddress){
+        SocketPoll poll;
+        listener.listen(u8"5555");
+        poll.add(listener);
+
+        TcpSocket client;
+        while(true){
+            if(poll.wait()){
+                if(poll.isWriteable(listener)||poll.isReadable(listener)){
+                    std::string ipAddr;
+                    int port;
+                    listener.accept(client,  ipAddr, port);
+                    poll.add(client);
+                }
+                if (poll.isReadable(client)||poll.isWriteable(client)) {
+                
+                    char buffer[1000];
+                    size_t received;
+                    if(client.recv(buffer, 1000, received)){
+                        std::cout << std::string(buffer,buffer+received)<<std::endl;
+                    }
+                }
+                std::cout << ".";
+
+            }
+
+        }
+    }
+};
+Server server;
+struct Client{
+    TcpSocket socket;
+    void join(std::u32string u32address){
+        //convert u32 to u8string:
+        std::u8string u8address;
+        {
+            setlocale(LC_ALL, "en_US.utf8");
+            char buffer[MB_CUR_MAX];
+            std::mbstate_t state{}; 
+            
+            for (auto& c32: u32address) {
+                if(size_t rc = std::c32rtomb(buffer, c32, &state))
+                {
+                    if (rc == (std::size_t) - 1)
+                        break;
+                    if (rc == (std::size_t) - 2)
+                        break;
+                    u8address += std::u8string(buffer,buffer+rc);
+                }
+            }
+        }
+        size_t split = u8address.find(':');
+        std::u8string ip = u8address.substr(0,split); 
+        std::u8string port = u8"5555";  
+        if(split!=std::string::npos){
+            port = u8address.substr(split+1);
+        }
+        if(!socket.connect(ip, port)){
+            std::cout << "failed to connect to "<<(char*)ip.c_str()<<" "<<(char*)port.c_str() << std::endl;
+        }
+
+        while (socket.exist()) {
+            char buff[1000];
+            size_t received;
+            if(socket.recv(buff, 1000, received)){
+                std::cout << std::string(buff,buff+received) <<std::endl;
+            }
+
+        }
+    }
+};
+Client client;
 class MultiplayerMenu:public Screen{
     Text ipAddressLabel;
     Text nameLabel;
+    Text join;
+    Text host;
     Text* selected = nullptr;
     void create(GuiSystem& gs,Setup& stp)override{
-        // nameLabel.setString(gs.font, stp.pool, stp.render, u8"Enter name of sacrifice");
-        // ipAddressLabel.setString(gs.font, stp.pool, stp.render, u8"Enter Server Address");
+        host.setString(gs.font, stp.pool, stp.render, u8"Host");
+        join.setString(gs.font, stp.pool, stp.render, u8"Join");
 
     }
     void draw(GuiSystem& gs,Setup& stp,glm::vec2 relativeMousePosition)override{
@@ -134,21 +214,30 @@ class MultiplayerMenu:public Screen{
         if(!ipAddressLabel.string.size()&& &ipAddressLabel!=selected)
             ipAddressLabel.setString(gs.font, stp.pool, stp.render, u8"Enter Server Address");
 
-        Text* texts[] = {&ipAddressLabel,&nameLabel};
+        Text* texts[] = {&ipAddressLabel,&nameLabel,&join,&host};
+        glm::vec2 positions[] = {glm::vec2(300,300),glm::vec2(300,420),glm::vec2(1200,900),glm::vec2(100,900)};
+        glm::vec4 colors[] = {glm::vec4(0.2,0.2,0.7,1),glm::vec4(0.2,0.2,0.7,1),glm::vec4(0.5),glm::vec4(0.5)};
+
         if(glfwGetMouseButton(stp.window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS){  
             selected = nullptr;
         }
-        for (int i = 0;i<2 ;i++) {
+        for (int i = 0;i<4 ;i++) {
             auto& text = texts[i];
-            glm::vec2 position(300,300+i*120);
+            auto position = positions[i];
+            auto color = colors[i];
             glm::vec2 size(60);
-            glm::vec4 color(0.2,0.2,0.7,1);
             if( position.x < mousePosition.x && mousePosition.x < position.x+size.x*text->width && position.y < mousePosition.y && mousePosition.y < position.y+size.y){
                 color = glm::vec4(1);
                 if(glfwGetMouseButton(stp.window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS){  
-                    selected = texts[i];
-                    selected->string.clear();
-                    stp.window.textInput.clear();
+                    if(i < 2){
+                        selected = texts[i];
+                        selected->string.clear();
+                        stp.window.textInput.clear();
+                    }else if(i==2){
+                        client.join(ipAddressLabel.string);
+                    }else if(i==3){
+                        server.start(ipAddressLabel.string);
+                    }
                 }
             }
             if(texts[i]==selected){

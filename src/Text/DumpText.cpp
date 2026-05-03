@@ -190,6 +190,7 @@ void Text::setString(Font& font,CommandPool& pool,RenderSync* render,std::u8stri
     std::u32string u32string;
     //convert u8 to u32string:
     {
+        setlocale(LC_ALL, "en_US.utf8");
         std::mbstate_t state{}; 
         char32_t c32;
         const char* ptr = (char*)(str.data()), *end = (char*)str.data() + str.size() + 1;
