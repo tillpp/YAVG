@@ -48,14 +48,14 @@ public:
 };
 
 class Text{
-    std::u32string string;
     
     struct VertexBuffer:public Buffer{
-
+        
         size_t vertexCount;
     };
     std::shared_ptr<VertexBuffer> buffer;
 public:
+    std::u32string string;
     double width;
 
     void setString(Font& font,CommandPool& pool,RenderSync* render,std::u32string string);

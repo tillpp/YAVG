@@ -207,9 +207,12 @@ void Text::setString(Font& font,CommandPool& pool,RenderSync* render,std::u8stri
     setString(font,pool,render,u32string);
 }
 void Text::setString(Font& font,CommandPool& pool,RenderSync* render ,std::u32string str){
+    if(str == string)
+        return;
+    string = str;
+
     std::vector<Vertex> vertices;
     std::vector<Font::Glyph> glyphs;
-    
     for (auto& c : str) {
         auto glyph = font.getGlyph(render,pool, c);
         glyphs.push_back(glyph);

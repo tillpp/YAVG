@@ -5,6 +5,7 @@
 #include "glm/ext/vector_float2.hpp"
 #include "glm/ext/vector_float4.hpp"
 #include "vulkan/DescriptorLayout.hpp"
+#include "vulkan/setup/Instance.hpp"
 #include "vulkan/setup/Window.hpp"
 #include "vulkan/setup/Device.hpp"
 #include "vulkan/setup/CommandBuffer.hpp"
@@ -50,15 +51,34 @@ const std::vector<uint16_t> indices = {
 
 FPSMessurement fpsCounter;
 
+struct Setup{
+    Instance& instance;
+    Window& window;
+    Device& device;
+    GraphicsQueue& queue;
+    Swapchain& swapchain;
+    CommandPool& pool;    
+    RenderSync* render;
+    
+    std::filesystem::path projectBaseDir; 
+    DepthBuffer &depthBuffer;
+    
+    //current rendering
+    CommandBuffer& buffer;    
+};
+class Screen{
+public:
+    virtual void create(class GuiSystem& gs,Setup& setup)=0;
+    virtual ~Screen()=default;
+    virtual void draw(GuiSystem& gs,Setup& setup,glm::vec2 relativeMousePosition)=0;
+};
 class GuiSystem{
 public:
-    Buffer vertexBuffer, indexBuffer;
     Pipeline pipeline;
     Pipeline pipelineText;
     DescriptorSetLayout dsLayout;
-    DescriptorSet ds2;
-    Text text,text2,text3,text4;
-    std::string cachedText4;
+    DescriptorSet dsTexture;
+
     struct PushConstantBlock{
         glm::vec2 position;
         glm::vec2 size;
@@ -83,111 +103,115 @@ public:
     PushConstant pushConstant;
     PushConstant pushConstantText;
     Font font;
+    std::shared_ptr<Screen> screen;
+
+    void setScreen(Setup& setup,std::shared_ptr<Screen> newScreen){
+        newScreen->create(*this,setup);
+        screen = newScreen;
+    }
+    void create(Setup& setup);
+    void draw(Setup& setup);
+};
+class MultiplayerMenu:public Screen{
+    Text ipAddressLabel;
+    Text nameLabel;
+    Text* selected = nullptr;
+    void create(GuiSystem& gs,Setup& stp)override{
+        // nameLabel.setString(gs.font, stp.pool, stp.render, u8"Enter name of sacrifice");
+        // ipAddressLabel.setString(gs.font, stp.pool, stp.render, u8"Enter Server Address");
+
+    }
+    void draw(GuiSystem& gs,Setup& stp,glm::vec2 relativeMousePosition)override{
+        auto screenSize = glm::vec2(1920,1080);
+        auto mousePosition = relativeMousePosition*screenSize;
+
+        auto& commandBuffer = stp.buffer.commandBuffer;
+        commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *gs.pipelineText.graphicsPipeline);
+        gs.dsTexture.bind(stp.device,commandBuffer,*stp.render,gs.pipelineText);
+
+        if(!nameLabel.string.size() && &nameLabel!=selected)
+            nameLabel.setString(gs.font, stp.pool, stp.render, u8"Enter name of sacrifice");
+        if(!ipAddressLabel.string.size()&& &ipAddressLabel!=selected)
+            ipAddressLabel.setString(gs.font, stp.pool, stp.render, u8"Enter Server Address");
+
+        Text* texts[] = {&ipAddressLabel,&nameLabel};
+        if(glfwGetMouseButton(stp.window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS){  
+            selected = nullptr;
+        }
+        for (int i = 0;i<2 ;i++) {
+            auto& text = texts[i];
+            glm::vec2 position(300,300+i*120);
+            glm::vec2 size(60);
+            glm::vec4 color(0.2,0.2,0.7,1);
+            if( position.x < mousePosition.x && mousePosition.x < position.x+size.x*text->width && position.y < mousePosition.y && mousePosition.y < position.y+size.y){
+                color = glm::vec4(1);
+                if(glfwGetMouseButton(stp.window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS){  
+                    selected = texts[i];
+                    selected->string.clear();
+                    stp.window.textInput.clear();
+                }
+            }
+            if(texts[i]==selected){
+                color = glm::vec4(1,0,0,1);
+                if(stp.window.textInput.size()){
+                    selected->setString(gs.font, stp.pool, stp.render, selected->string+stp.window.textInput);
+                    stp.window.textInput.clear();
+                }
+            }
+            gs.pushConstantText.use(stp.buffer,gs.pipelineText,GuiSystem::PushConstantBlockText(screenSize,position,glm::vec2(60),gs.font.texturePacker.getSize(),color));
+            text->draw(stp.buffer);
+        }   
+    }
+};
+class MainMenu:public Screen{
+    Text text,text2,text3,text4;
     std::u32string string;
 
-    void create(
-        Device& device,
-        CommandPool& pool,
-        Swapchain& swapchain,
-        RenderSync* render,
-        std::filesystem::path projectBaseDir,
-        DepthBuffer& depthBuffer){
+public:
+    std::chrono::steady_clock::time_point start;
 
-    
-        dsLayout.create(device,{
-            DescriptorLayout(1,vk::ShaderStageFlagBits::eFragment, vk::DescriptorType::eCombinedImageSampler),
-        });
-
-        font.loadFromFile(projectBaseDir/"assets"/"fonts"/"unscii-16-full.ttf");
-        font.getGlyph(render,pool,'-');
-        text.setString(font, pool,  render , u8"Suffer alone    😈");
-        text2.setString(font, pool, render, u8"Suffer together 😈 😈");
-        text3.setString(font, pool, render, u8"Exit");
-        text4.setString(font, pool, render, u8"Hz");
-
-        ds2.create(device,render,dsLayout,{
-            DescriptorLayout(1,vk::ShaderStageFlagBits::eFragment, vk::DescriptorType::eCombinedImageSampler),
-        });
-        ds2.setResource(1, font.image);
+    void create(GuiSystem& gs,Setup& stp)override{
         
-        pushConstant.create(vk::ShaderStageFlagBits::eVertex,0,sizeof(PushConstantBlock));
-        pipeline.create(render,device,projectBaseDir/"bin"/"gui.spv",
-            "vertMain","fragMain",swapchain,dsLayout,depthBuffer,false,&pushConstant
-        );
-        pushConstantText.create(vk::ShaderStageFlagBits::eVertex,0,sizeof(PushConstantBlockText));
-        pipelineText.create(render,device,projectBaseDir/"bin"/"text.spv",
-            "vertMain","fragMain",swapchain,dsLayout,depthBuffer,false,&pushConstantText
-        );
-        vertexBuffer.createVertexBuffer(render,pool,vertices.data(),vertices.size());
-        indexBuffer.createIndexBuffer(  render,pool,indices.data(),indices.size());
-
-        t= std::chrono::steady_clock::now();
+        text.setString( gs.font, stp.pool, stp.render , u8"Suffer alone    😈");
+        text2.setString(gs.font, stp.pool, stp.render, u8"Suffer together 😈 😈");
+        text3.setString(gs.font, stp.pool, stp.render, u8"Exit");
+        text4.setString(gs.font, stp.pool, stp.render, u8"Hz");
+        
+        start = std::chrono::steady_clock::now();
     }
-    uint32_t ogfi;
-    bool reset = false;
-    bool f = true;
-    std::chrono::steady_clock::time_point t;
-    void draw(Game& _game,CommandPool& pool,CommandBuffer& buffer,RenderSync* render){
-        buffer.commandBuffer.setViewport(0, vk::Viewport{
-            .x = 0.0f,
-            .y = 0.0f,
-            .width = static_cast<float>(_game.swapchain.swapChainExtent.width),
-            .height = static_cast<float>(_game.swapchain.swapChainExtent.height),
-            .minDepth = 0.0f,
-            .maxDepth = 1.0f,
-        });
-        buffer.commandBuffer.setScissor(0, vk::Rect2D{
-            .offset = vk::Offset2D{.x = 0,.y = 0},
-            .extent = _game.swapchain.swapChainExtent,
-        });
-        
-        if(glfwGetKey(_game.window, GLFW_KEY_Y)){
+    void draw(GuiSystem& gs,Setup& stp,glm::vec2 relativeMousePosition)override{
+        auto screenSize = glm::vec2(1920,1080);
+        auto mousePosition = relativeMousePosition*screenSize;
+
+        // if(glfwGetKey(stp.window, GLFW_KEY_Y)){
             
-            //char c = 32+rand()%96;
-            //font.getGlyph(pool, render.getFrameIndex(), c);
+        //     //char c = 32+rand()%96;
+        //     //font.getGlyph(pool, render.getFrameIndex(), c);
             
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            // while(glfwGetKey(window, GLFW_KEY_Y)){
-            //     glfwWaitEvents();
-            // }
-            text.setString(font, pool, render, u8"hi");
+        //     std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        //     // while(glfwGetKey(window, GLFW_KEY_Y)){
+        //     //     glfwWaitEvents();
+        //     // }
+        //     text.setString(gs.font, stp.pool, stp.render, u8"hi");
+        // }
+        if(stp.window.textInput.size()){
+            string += stp.window.textInput;
+            stp.window.textInput.clear();
+            text.setString(gs.font,stp.pool, stp.render, string);
         }
-        if(_game.window.textInput.size()){
-            string += _game.window.textInput;
-            _game.window.textInput.clear();
-            text.setString(font,pool, render, string);
-        }
-        auto& commandBuffer = buffer.commandBuffer;
 
-        // commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline.graphicsPipeline);
-        // pushConstant.use(buffer,pipeline,PushConstantBlock(glm::vec2(1920,1080),glm::vec2(660+150,100),glm::vec2(300,100)));
-        // ds.bind(device,commandBuffer,render,pipeline);
-       
-        // commandBuffer.bindVertexBuffers(0, *vertexBuffer.buffer, {0});
-        // commandBuffer.bindIndexBuffer(*indexBuffer.buffer, 0, vk::IndexType::eUint16);
-        // commandBuffer.drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0,0);
-        
-        commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineText.graphicsPipeline);
-        ds2.bind(_game.device,commandBuffer,*render,pipelineText);
-        Text* texts[] = {&text,&text2,&text3};
+        auto& commandBuffer = stp.buffer.commandBuffer;
+        commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *gs.pipelineText.graphicsPipeline);
+        gs.dsTexture.bind(stp.device,commandBuffer,*stp.render,gs.pipelineText);
 
-
-        // process mouse
-        auto screenSize = glm::dvec2(1920,1080);
-        glm::dvec2 rawMousPos;
-        glm::ivec2 realWindowSize;
-        glfwGetCursorPos(_game.window, &rawMousPos.x, &rawMousPos.y);
-        glfwGetFramebufferSize(_game.window, &realWindowSize.x, &realWindowSize.y);
-        glm::vec2 mousePosition = (rawMousPos/glm::dvec2(realWindowSize))*screenSize;
-        
         //FPS
-        pushConstantText.use(buffer,pipelineText,PushConstantBlockText(screenSize,glm::vec2(0),glm::vec2(30),font.texturePacker.getSize(),glm::vec4(1)));
-        text4.draw(buffer);
+        gs.pushConstantText.use(stp.buffer,gs.pipelineText,GuiSystem::PushConstantBlockText(screenSize,glm::vec2(0),glm::vec2(30),gs.font.texturePacker.getSize(),glm::vec4(1)));
+        text4.draw(stp.buffer);
         std::string fpsString = std::to_string(fpsCounter.currentFPS)+" Hz";
-        if(cachedText4 != fpsString)
-            text4.setString(font, pool, render, std::u8string(fpsString.begin(),fpsString.end()).c_str());
-        cachedText4 = fpsString;
-
+        text4.setString(gs.font, stp.pool, stp.render, std::u8string(fpsString.begin(),fpsString.end()).c_str());
+        
+        Text* texts[] = {&text,&text2,&text3};
+        
         size_t i = 0;
         for (auto& text : texts) {
             auto position = glm::vec2(660,400+i*100);
@@ -199,41 +223,100 @@ public:
 
             if( position.x < mousePosition.x && mousePosition.x < position.x+size.x*text->width && position.y < mousePosition.y && mousePosition.y < position.y+size.y){
                 color = glm::vec4(1);
-                if(glfwGetMouseButton(_game.window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS){
-                    exit(0);
+                if(glfwGetMouseButton(stp.window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS){
+                    if(i==1){
+                        gs.setScreen(stp, std::make_shared<MultiplayerMenu>());
+                        return;
+                    }
                 }
                 if(i==0)
-                    text->setString(font, pool, render, u8"Singleplayer");
+                    text->setString(gs.font, stp.pool, stp.render, u8"Singleplayer");
                 if(i==1)
-                    text->setString(font, pool, render, u8"Multiplayer");
+                    text->setString(gs.font, stp.pool, stp.render, u8"Multiplayer");
             }else{
                 if(i==0)
-                    text->setString(font, pool, render, u8"Suffer alone    😈");
+                    text->setString(gs.font, stp.pool, stp.render, u8"Suffer alone    😈");
                 if(i==1)
-                    text->setString(font, pool, render, u8"Suffer together 😈 😈");
+                    text->setString(gs.font, stp.pool, stp.render, u8"Suffer together 😈 😈");
 
             }
 
 
 
-            pushConstantText.use(buffer,pipelineText,PushConstantBlockText(screenSize,position,size,font.texturePacker.getSize(),color));
+            gs.pushConstantText.use(stp.buffer,gs.pipelineText,GuiSystem::PushConstantBlockText(screenSize,position,size,gs.font.texturePacker.getSize(),color));
 
-            text->draw(buffer);
+            text->draw(stp.buffer);
             i++;
             if(i==2){
-                if(std::chrono::steady_clock::now() > t+std::chrono::milliseconds(400))
+                if(std::chrono::steady_clock::now() > start+std::chrono::milliseconds(400))
                     break;
             }
         }
+    } 
+    ~MainMenu(){
 
-        
-        // pushConstant.use(buffer,pipelineText,PushConstantBlock(glm::vec2(1920,1080),glm::vec2(660,500),glm::vec2(60,60)));
-        
-        // commandBuffer.bindVertexBuffers(0, *text2.buffer.buffer, {0});
-        // commandBuffer.draw(static_cast<uint32_t>(text2.vertexCount), 1, 0, 0);
-        
     }
 };
+void GuiSystem::create(Setup& stp){
+
+    
+        dsLayout.create(stp.device,{
+            DescriptorLayout(1,vk::ShaderStageFlagBits::eFragment, vk::DescriptorType::eCombinedImageSampler),
+        });
+
+        font.loadFromFile(stp.projectBaseDir/"assets"/"fonts"/"unscii-16-full.ttf");
+        font.getGlyph(stp.render,stp.pool,'-');
+
+        dsTexture.create(stp.device,stp.render,dsLayout,{
+            DescriptorLayout(1,vk::ShaderStageFlagBits::eFragment, vk::DescriptorType::eCombinedImageSampler),
+        });
+        dsTexture.setResource(1, font.image);
+        
+        pushConstant.create(vk::ShaderStageFlagBits::eVertex,0,sizeof(PushConstantBlock));
+        pipeline.create(stp.render,stp.device,stp.projectBaseDir/"bin"/"gui.spv",
+            "vertMain","fragMain",stp.swapchain,dsLayout,stp.depthBuffer,false,&pushConstant
+        );
+        pushConstantText.create(vk::ShaderStageFlagBits::eVertex,0,sizeof(PushConstantBlockText));
+        pipelineText.create(stp.render,stp.device,stp.projectBaseDir/"bin"/"text.spv",
+            "vertMain","fragMain",stp.swapchain,dsLayout,stp.depthBuffer,false,&pushConstantText
+        );
+        setScreen(stp,std::make_shared<MainMenu>());
+    }
+void GuiSystem::draw(Setup& stp){
+        stp.buffer.commandBuffer.setViewport(0, vk::Viewport{
+            .x = 0.0f,
+            .y = 0.0f,
+            .width = static_cast<float>(stp.swapchain.swapChainExtent.width),
+            .height = static_cast<float>(stp.swapchain.swapChainExtent.height),
+            .minDepth = 0.0f,
+            .maxDepth = 1.0f,
+        });
+        stp.buffer.commandBuffer.setScissor(0, vk::Rect2D{
+            .offset = vk::Offset2D{.x = 0,.y = 0},
+            .extent = stp.swapchain.swapChainExtent,
+        });
+        
+        
+        auto& commandBuffer = stp.buffer.commandBuffer;
+
+        // commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline.graphicsPipeline);
+        // pushConstant.use(buffer,pipeline,PushConstantBlock(glm::vec2(1920,1080),glm::vec2(660+150,100),glm::vec2(300,100)));
+        // ds.bind(device,commandBuffer,render,pipeline);
+       
+        // commandBuffer.bindVertexBuffers(0, *vertexBuffer.buffer, {0});
+        // commandBuffer.bindIndexBuffer(*indexBuffer.buffer, 0, vk::IndexType::eUint16);
+        // commandBuffer.drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0,0);
+        
+
+        // process mouse
+        glm::dvec2 rawMousPos;
+        glm::ivec2 realWindowSize;
+        glfwGetCursorPos(stp.window, &rawMousPos.x, &rawMousPos.y);
+        glfwGetFramebufferSize(stp.window, &realWindowSize.x, &realWindowSize.y);
+        glm::vec2 relativeMousePosition = (rawMousPos/glm::dvec2(realWindowSize));   
+
+        screen->draw(*this, stp, relativeMousePosition);
+    }
 MeshWeaver mw;
 struct Chunk2{
     Buffer vertexBuffer,indexBuffer;
@@ -368,9 +451,7 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
     DepthBuffer depthBuffer;
     WorldRenderer wr;
     wr.init(_game, projectBaseDir,depthBuffer);
-    GuiSystem* gs = new GuiSystem;
-    
-    gs->create(_game.device,_game.commandPool,_game.swapchain,&_game.render,projectBaseDir,depthBuffer);
+    GuiSystem* gs = nullptr;
    
     // TODO refactor the following in the future:
     auto recordCommandBuffer = [&](CommandBuffer& CB,uint32_t frameIndex,uint32_t imageIndex)
@@ -378,13 +459,30 @@ void game(Game& _game,std::filesystem::path projectBaseDir) {
         CB.begin();
         _game.swapchain.beginRendering(CB,imageIndex,&depthBuffer);
         
+        Setup setup{
+            .instance = _game.instance,
+            .window = _game.window,
+            .device = _game.device,
+            .queue = _game.queue,
+            .swapchain = _game.swapchain,
+            .pool = _game.commandPool,
+            .render = &_game.render,
+            .projectBaseDir = projectBaseDir,
+            .depthBuffer = depthBuffer,
+            .buffer = CB
+        };
+        if(!gs){
+            gs = new GuiSystem;
+            gs->create(setup);
+        }
+
         wr.draw(_game,CB, frameIndex, imageIndex);
         if(glfwGetKey(_game.window, GLFW_KEY_P)){
             delete gs;
             gs = 0;
         }
         if(gs)
-            gs->draw(_game,_game.commandPool,CB,&_game.render);
+            gs->draw(setup);
         
             
         _game.swapchain.endRendering(CB,imageIndex);
